@@ -30,35 +30,56 @@ function mod:onload(timeControls)
 
     timeControls.init = function(timeControls_, gameUI_, world_)
         
-        mj:log("Creating mainView)")
+        mj:log("Creating myMainView)")
         
         myMainView = View.new(gameUI_.view)
         myMainView.hidden = false
         myMainView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
         myMainView.baseOffset = vec3(10.0, -10.0, 0.0)
         local circleViewSize = 60.0
-        local panelSizeToUse = vec2(230.0, 60.0)
-        local panelXOffset = -30.0
+        local panelSizeToUse = vec2(170.0, 60.0)
+        local panelXOffset = 55.0
         myMainView.size = vec2(circleViewSize + panelSizeToUse.x - panelXOffset, 60.0)
         
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
 
+        mj:log("Creating myPanelView)")
         local myPanelView = ModelView.new(myMainView)
+        local myPanelViewSize = vec2(30.0, 60.0)
+        
+        local myPanelXOffset = 75
         myPanelView:setModel(model:modelIndexForName("ui_panel_10x2"))
         myPanelView.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionTop)
         myPanelView.relativeView = myMainView
-        myPanelView.baseOffset = vec3(panelXOffset, 0.0, -2)
+        myPanelView.baseOffset = vec3(myPanelXOffset, 0.0, -2)
         myPanelView.scale3D = vec3(panelScaleToUseX,panelScaleToUseY,panelScaleToUseX)
-        myPanelView.size = panelSizeToUse
+        myPanelView.size = myPanelViewSize
         myPanelView.alpha = 0.9
 
-        mj:log("Creating testingTextView)")
-        testingTextView = TextView.new(myPanelView)
-        testingTextView.font = Font(uiCommon.fontName, 16)
-        testingTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-        testingTextView.baseOffset = vec3(0,-40,0)
-        testingTextView.text = "Year 99"
+        mj:log("Creating YearTextView)")
+        yearTextView = TextView.new(myPanelView)
+        yearTextView.font = Font(uiCommon.fontName, 16)
+        yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        yearTextView.relativeView = myPanelView
+        yearTextView.baseOffset = vec3(-30,60,0)
+        yearTextView.text = "Year 99"
+
+        mj:log("Creating DayTextView)")
+        dayTextView = TextView.new(myPanelView)
+        dayTextView.font = Font(uiCommon.fontName, 16)
+        dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        dayTextView.relativeView = myPanelView
+        dayTextView.baseOffset = vec3(-30,45,0)
+        dayTextView.text = "Day 8"
+
+        mj:log("Creating SeasonTextView)")
+        seasonTextView = TextView.new(myPanelView)
+        seasonTextView.font = Font(uiCommon.fontName, 18)
+        seasonTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonTextView.relativeView = myPanelView
+        seasonTextView.baseOffset = vec3(-30,30,0)
+        seasonTextView.text = "Summer"
 
 		mj:log("Executing UI Render on)")
 
