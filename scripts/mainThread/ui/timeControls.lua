@@ -21,6 +21,8 @@ local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 
+local timeControlsPlus = mjrequire "timeControlsPlus"
+
 local mod = {
     loadOrder = 1
 }
@@ -57,13 +59,15 @@ function mod:onload(timeControls)
         myPanelView.size = myPanelViewSize
         myPanelView.alpha = 0.9
 
+        --timeControlsPlus.init(world_)
+
         mj:log("Creating YearTextView)")
         yearTextView = TextView.new(myPanelView)
         yearTextView.font = Font(uiCommon.fontName, 16)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
         yearTextView.baseOffset = vec3(-30,60,0)
-        yearTextView.text = "Year 99"
+        yearTextView.text = "Year " .. timeControlsPlus:getCurrentYear()
 
         mj:log("Creating DayTextView)")
         dayTextView = TextView.new(myPanelView)
@@ -71,7 +75,7 @@ function mod:onload(timeControls)
         dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         dayTextView.relativeView = myPanelView
         dayTextView.baseOffset = vec3(-30,45,0)
-        dayTextView.text = "Day 8"
+        dayTextView.text = "Day  " .. timeControlsPlus:getDayOfYear()
 
         mj:log("Creating SeasonTextView)")
         seasonTextView = TextView.new(myPanelView)
@@ -79,7 +83,7 @@ function mod:onload(timeControls)
         seasonTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTextView.relativeView = myPanelView
         seasonTextView.baseOffset = vec3(-30,30,0)
-        seasonTextView.text = "Summer"
+        seasonTextView.text = timeControlsPlus:getSeason()
 
 		mj:log("Executing UI Render on)")
 
