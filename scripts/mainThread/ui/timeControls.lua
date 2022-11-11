@@ -12,7 +12,8 @@ function mod:onload(timeControls)
 
     --Redefine the function
 
-    timeControls.init = function(self) --function(gameUI, world)
+    timeControls.init = function(gameUI_, world_)
+        
 		mj:log("Executing UI Render on)")
     --[[
         mainView = View.new(gameUI.view)
