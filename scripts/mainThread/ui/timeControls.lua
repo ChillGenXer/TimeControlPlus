@@ -21,8 +21,6 @@ local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 
-local timeControlsPlus = mjrequire "timeControlsPlus"
-
 local mod = {
     loadOrder = 1
 }
@@ -32,8 +30,42 @@ function mod:onload(timeControls)
 
     timeControls.init = function(timeControls_, gameUI_, world_)
         
-        mj:log("Creating myMainView)")
-        
+        local worldTime = nil
+        local dayLength = nil
+        local yearLength = nil
+        local worldAgeInDays = nil
+        local currentYear = nil
+        local currentDayOfYear = nil
+
+        --Calculations for the calendar.
+        local function updateCalendar()
+            worldTime = world_:getWorldTime()
+            dayLength = world_:getDayLength()
+            yearLength = world_:getYearLength()
+            worldAgeInDays = math.floor(worldTime/dayLength)
+            currentYear = math.floor(worldAgeInDays/8) + 1 --Adding 1 to make the year counting start at 1
+            currentDayOfYear = worldAgeInDays % 8 + 1 --Same for days.
+        end
+
+        local function getSeason()
+            --Calculate which season it is.  For now I am just using a basic calendar approach,
+            --not using the game engine to inquire for the exact season, but it seems to produce
+            --a decent result for what it's intended for.
+            if currentDayOfYear < 3 then
+                return "Spring"
+            elseif currentDayOfYear < 5 then
+                return "Summer"
+            elseif currentDayOfYear < 7 then
+                return "Autumn"
+            else
+                return "Winter"
+            end
+        end
+
+        --Custom views for displaying the additional information.
+        --TODO: I have no idea how the hierarchy is working and the effect of the actual
+        --timeControls.lua UI elements once they are rendered after mine.  Need to figure
+        --this out.
         myMainView = View.new(gameUI_.view)
         myMainView.hidden = false
         myMainView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
@@ -46,7 +78,6 @@ function mod:onload(timeControls)
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
 
-        mj:log("Creating myPanelView)")
         local myPanelView = ModelView.new(myMainView)
         local myPanelViewSize = vec2(30.0, 60.0)
         
@@ -67,7 +98,10 @@ function mod:onload(timeControls)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
         yearTextView.baseOffset = vec3(-30,60,0)
-        yearTextView.text = "Year " .. timeControlsPlus:getCurrentYear()
+        yearTextView.update = function(dt)
+            updateCalendar()
+            yearTextView.text = "Year " .. tostring(currentYear) --timeControlsPlus:getCurrentYear()
+        end
 
         mj:log("Creating DayTextView)")
         dayTextView = TextView.new(myPanelView)
@@ -75,7 +109,10 @@ function mod:onload(timeControls)
         dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         dayTextView.relativeView = myPanelView
         dayTextView.baseOffset = vec3(-30,45,0)
-        dayTextView.text = "Day  " .. timeControlsPlus:getDayOfYear()
+        dayTextView.update = function(dt)
+            updateCalendar()
+            dayTextView.text = "Day  " .. tostring(currentDayOfYear) --timeControlsPlus:getDayOfYear()
+        end
 
         mj:log("Creating SeasonTextView)")
         seasonTextView = TextView.new(myPanelView)
@@ -83,11 +120,14 @@ function mod:onload(timeControls)
         seasonTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTextView.relativeView = myPanelView
         seasonTextView.baseOffset = vec3(-30,30,0)
-        seasonTextView.text = timeControlsPlus:getSeason()
-
+        seasonTextView.update = function(dt)
+            updateCalendar()
+            seasonTextView.text = getSeason()
+        end
 		mj:log("Executing UI Render on)")
 
-	    superTimeControls(timeControls_, gameUI_, world_) -- Run game vanilla time control to overlay what we have shown
+        --That's it for the custom code, hand back control to timeControls.lua to continue
+	    superTimeControls(timeControls_, gameUI_, world_)
     end
 end
 
