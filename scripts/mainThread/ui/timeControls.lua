@@ -15,6 +15,9 @@ local audio = mjrequire "mainThread/audio"
 local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
+--local logic = mjrequire "logicThread/logic"
+--local playerPosition = logic.playerPos
+--local seasonFraction = logic:getSeasonFraction()
 
 local mod = {
     loadOrder = 1
@@ -25,107 +28,131 @@ function mod:onload(timeControls)
 
     timeControls.init = function(timeControls_, gameUI_, world_)
         
-        local worldTime = nil
-        local dayLength = nil
-        local yearLength = nil
-        local worldAgeInDays = nil
-        local currentYear = nil
-        local currentDayOfYear = nil
+        --That's it for the custom code, hand back control to timeControls.lua to continue
+	    superTimeControls(timeControls_, gameUI_, world_)
 
+        --local worldTime = nil
+        --local dayLength = nil
+        --local yearLength = nil
+        --local worldAgeInDays = nil
+        --local currentYear = nil
+        --local currentDayOfYear = nil
+--[[
         --Calculations for the calendar.
         local function updateCalendar()
             worldTime = world_:getWorldTime()
             dayLength = world_:getDayLength()
             yearLength = world_:getYearLength()
-            worldAgeInDays = math.floor(worldTime/dayLength)
-            currentYear = math.floor(worldAgeInDays/8) + 1 --Adding 1 to make the year counting start at 1
+            worldAgeInDays = math.floor(world_:getWorldTime()/world_:getDayLength())
+            currentYear = math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1 --Adding 1 to make the year counting start at 1
             currentDayOfYear = worldAgeInDays % 8 + 1 --Same for days.
+            --(math.floor(world_:getWorldTime()/world_:getDayLength())) % 8 + 1
         end
-
-
-
-
+--]]
         local function getSeason()
-            --Calculate which season it is.  For now I am just using a basic calendar approach,
-            --not using the game engine to inquire for the exact season, but it seems to produce
-            --a decent result for what it's intended for.
-            if currentDayOfYear < 3 then
-                return "Spring"
-            elseif currentDayOfYear < 5 then
-                return "Summer"
-            elseif currentDayOfYear < 7 then
-                return "Autumn"
+            --Calculate which season it is.
+            --TODO Add southern hemisphere check.  Not sure where to get it properly, had a few crashes
+--]]
+           local seasonFraction = math.fmod(world_.yearSpeed * world_:getWorldTime(), 1.0)
+           --0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
+           if (seasonFraction >= 0) and (seasonFraction < 0.25) then
+                return "appleTreeSpring"
+            elseif (seasonFraction >= 0.25) and (seasonFraction < 0.50) then
+                return "appleTree"
+            elseif (seasonFraction >= 0.50) and (seasonFraction < 0.75) then
+                return "appleTreeAutumn"
             else
-                return "Winter"
+                return "appleTreeWinter"
             end
         end
 
         --Custom views for displaying the additional information.
-        --TODO: I have no idea how the hierarchy is working and the effect of the actual
-        --timeControls.lua UI elements once they are rendered after mine.  Need to figure
-        --this out.
-        myMainView = View.new(gameUI_.view)
-        myMainView.hidden = false
-        myMainView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
-        myMainView.baseOffset = vec3(10.0, -10.0, 0.0)
+
+        local panelSizeToUse = vec2(110.0, 61.0)
+        local offsetFromGamePanel = 206.0 --The offset from the vanilla timeControl panel       
         local circleViewSize = 60.0
-        local panelSizeToUse = vec2(170.0, 60.0)
-        local panelXOffset = 55.0
-        myMainView.size = vec2(circleViewSize + panelSizeToUse.x - panelXOffset, 60.0)
         
+        --Positioning things
+        local myPanelBaseOffset = vec3(0, 0.0, -2)
+        local yearBaseOffset = vec3(15,58,0)
+        local dayBaseOffset = vec3(15,42,0)
+        local seasonBaseOffset = vec3(15,25,0)
+        
+        local circleBackgroundScale = circleViewSize * 0.48
+        local seasonTreeImageScale = circleViewSize * 0.1
+        local seasonCircleBaseOffset = vec3(80.0, 60.0, 1.0)
+        local seasonTreeBaseOffset = vec3(90.0, 30.0, 20.0)
+
+        --Do I need these
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
 
-        local myPanelView = ModelView.new(myMainView)
-        local myPanelViewSize = vec2(30.0, 60.0)
+        --This is the main view coming from the gameIU object.  I'm not sure why I need this.
+        myMainView = View.new(gameUI_.view)
+        myMainView.hidden = false
+        myMainView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
+        myMainView.baseOffset = vec3(offsetFromGamePanel, -10.0, 0.0)
+        myMainView.size = panelSizeToUse
         
-        local myPanelXOffset = 75
+        local myPanelView = ModelView.new(myMainView)
         myPanelView:setModel(model:modelIndexForName("ui_panel_10x2"))
-        myPanelView.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionTop)
+        myPanelView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
         myPanelView.relativeView = myMainView
-        myPanelView.baseOffset = vec3(myPanelXOffset, 0.0, -2)
+        myPanelView.baseOffset = myPanelBaseOffset
         myPanelView.scale3D = vec3(panelScaleToUseX,panelScaleToUseY,panelScaleToUseX)
-        myPanelView.size = myPanelViewSize
-        myPanelView.alpha = 0.9
+        myPanelView.size = panelSizeToUse
+        myPanelView.alpha = 0.9     --I think this is transparency.
 
-        --timeControlsPlus.init(world_)
-
-        mj:log("Creating YearTextView)")
         yearTextView = TextView.new(myPanelView)
         yearTextView.font = Font(uiCommon.fontName, 16)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
-        yearTextView.baseOffset = vec3(-30,60,0)
+        yearTextView.baseOffset = yearBaseOffset
         yearTextView.update = function(dt)
-            updateCalendar()
-            yearTextView.text = "Year " .. tostring(currentYear) --timeControlsPlus:getCurrentYear()
+            yearTextView.text = "Year " .. tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
         end
 
-        mj:log("Creating DayTextView)")
         dayTextView = TextView.new(myPanelView)
         dayTextView.font = Font(uiCommon.fontName, 16)
         dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         dayTextView.relativeView = myPanelView
-        dayTextView.baseOffset = vec3(-30,45,0)
+        dayTextView.baseOffset = dayBaseOffset
         dayTextView.update = function(dt)
-            updateCalendar()
-            dayTextView.text = "Day  " .. tostring(currentDayOfYear) --timeControlsPlus:getDayOfYear()
+            --Calculate the day of the year.
+            dayTextView.text = "Day  " .. tostring((math.floor(world_:getWorldTime()/world_:getDayLength())) % 8 + 1)
         end
 
-        mj:log("Creating SeasonTextView)")
+        --mj:log("Creating SeasonTextView)")
         seasonTextView = TextView.new(myPanelView)
         seasonTextView.font = Font(uiCommon.fontName, 18)
         seasonTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTextView.relativeView = myPanelView
-        seasonTextView.baseOffset = vec3(-30,30,0)
-        seasonTextView.update = function(dt)
-            updateCalendar()
-            seasonTextView.text = getSeason()
-        end
-		mj:log("Executing UI Render on)")
+        seasonTextView.baseOffset = seasonBaseOffset
+       -- seasonTextView.update = function(dt)
+            --Update the 
+            --seasonTreeImage:setModel(model:modelIndexForName(getSeason()))
+        --end
 
-        --That's it for the custom code, hand back control to timeControls.lua to continue
-	    superTimeControls(timeControls_, gameUI_, world_)
+        local seasonCircle = ModelView.new(myPanelView)
+        seasonCircle:setModel(model:modelIndexForName("ui_circleBackgroundSmall"))
+        seasonCircle.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonCircle.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
+        seasonCircle.size = vec2(circleViewSize, circleViewSize)
+        seasonCircle.baseOffset = seasonCircleBaseOffset
+        seasonCircle.alpha = 0.9
+        --seasonCircle.color = vec3(0.6,0.8,1.0)
+
+        local seasonTreeImage = ModelView.new(myPanelView)
+        seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
+        seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
+        seasonTreeImage.size = vec2(circleViewSize, circleViewSize)
+        seasonTreeImage.baseOffset = seasonTreeBaseOffset
+        seasonTreeImage.alpha = 1.0
+        seasonTreeImage.update = function(dt)
+            --Update the 
+            seasonTreeImage:setModel(model:modelIndexForName(getSeason()))
+        end
     end
 end
 
