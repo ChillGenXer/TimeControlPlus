@@ -7,16 +7,11 @@ local vec3 = mjm.vec3
 local vec2 = mjm.vec2
 local mat3Rotate = mjm.mat3Rotate
 local mat3Identity = mjm.mat3Identity
-
 local locale = mjrequire "common/locale"
-
 local model = mjrequire "common/model"
 local weather = mjrequire "common/weather"
 local gameConstants = mjrequire "common/gameConstants"
-
---local keyMapping = mjrequire "mainThread/keyMapping"
 local audio = mjrequire "mainThread/audio"
-
 local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
@@ -46,6 +41,9 @@ function mod:onload(timeControls)
             currentYear = math.floor(worldAgeInDays/8) + 1 --Adding 1 to make the year counting start at 1
             currentDayOfYear = worldAgeInDays % 8 + 1 --Same for days.
         end
+
+
+
 
         local function getSeason()
             --Calculate which season it is.  For now I am just using a basic calendar approach,
@@ -132,3 +130,38 @@ function mod:onload(timeControls)
 end
 
 return mod
+
+--[[
+
+
+function weather:getRainfall(rainfallValues, normalizedPos, worldTime, yearSpeed)
+    
+    local isSouthHemisphere = dot(normalizedPos, vec3(0.0,1.0,0.0)) < 0.0
+    local seasonFraction = getSeasonFraction(worldTime, yearSpeed, isSouthHemisphere)
+
+    local mixFraction = math.cos((seasonFraction - 0.25) * math.pi * 2.0) * 0.5 + 0.5
+    local result = mjm.mix(rainfallValues[2], rainfallValues[1], mixFraction)
+
+    --mj:log("getRainfall seasonFraction:", seasonFraction, " mixFraction:", 1.0 - mixFraction, " summer:", rainfallValues[1], " winter:", rainfallValues[2], " result:", result)
+
+    return result
+end
+
+
+
+
+
+
+]]
+
+
+
+--Is this related to my code?  Trying a vanilla play through to test.
+--[[
+4724.299898:Exception calling lua function logicinterface.cpp:409 ...on/Sapiens/GameResources/scripts/common/notification.lua:238: attempt to index field 'userData' (a nil value)
+    stack traceback:
+        ...on/Sapiens/GameResources/scripts/common/notification.lua:238: in function 'titleFunction'
+        .../GameResources/scripts/mainThread/ui/notificationsUI.lua:283: in function 'displayNotificationWithInfo'
+        .../GameResources/scripts/mainThread/ui/notificationsUI.lua:352: in function 'displayObjectNotification'
+        ...iens/GameResources/scripts/mainThread/logicInterface.lua:273: in function <...iens/GameResources/scripts/mainThread/logicInterface.lua:255>
+--]]
