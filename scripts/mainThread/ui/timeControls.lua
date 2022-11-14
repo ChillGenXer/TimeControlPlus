@@ -16,6 +16,7 @@ local audio = mjrequire "mainThread/audio"
 local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
+local material = mjrequire "common/material"
 
 --Default mod load order
 local mod = {
@@ -54,6 +55,7 @@ function mod:onload(timeControls)
         --Dimensions of the UI objects
         local panelSizeToUse = vec2(110.0, 61.0)
         local circleViewSize = 60.0
+        local circuleBackSize = 60.0
         local offsetFromGamePanel = 206.0 --The offset from the vanilla timeControl panel       
               
         --Positioning things - vec3(x, y, z)
@@ -61,12 +63,14 @@ function mod:onload(timeControls)
         local yearBaseOffset = vec3(12,50,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(12,34,0)                     --offset for the day text control.
         local seasonBaseOffset = vec3(15,25,0)                  --offset for the season image control.
-        local seasonCircleBaseOffset = vec3(75.0, 61.0, 1.0)    --offset for the circle panel bookend
-        local seasonTreeBaseOffset = vec3(90.0, 30.0, 20.0)     --offset for the seasonal tree icon
+        local seasonCircleBaseOffset = vec3(75.0, 59.0, 1.0)    --offset for the circle panel bookend
+        local seasonCircleBackBaseOffset = vec3(75.0, 59.0, 2.0)
+        local seasonTreeBaseOffset = vec3(87.0, 28.0, 20.0)     --offset for the seasonal tree icon
 
+        local skyBlue = vec3(0.05,0.2,0.0)
         --Scaling
-        local circleBackgroundScale = circleViewSize * 0.49     --Not sure how this works but played with this number till it lined up
-        local seasonTreeImageScale = circleViewSize * 0.1
+        local circleBackgroundScale = circleViewSize * 0.48     --Not sure how this works but played with this number till it lined up
+        local seasonTreeImageScale = circleViewSize * 0.11
         --These are legacy from the code in the vanilla timeControls implementation.  I am not sure when the flexibility they bring is used
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
@@ -77,8 +81,27 @@ function mod:onload(timeControls)
         myMainView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
         myMainView.baseOffset = vec3(offsetFromGamePanel, -10.0, 0.0)
         myMainView.size = panelSizeToUse
-        
-        --The background panel.  It is snuggled up to the rightmost edge of the vanilla time control
+
+        --Circlular panel to create a bookend to the clock icon on the vanilla time control
+        local seasonCircle = ModelView.new(myMainView)
+        seasonCircle:setModel(model:modelIndexForName("ui_circleBackgroundSmall"))
+        seasonCircle.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonCircle.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
+        seasonCircle.size = vec2(circuleBackSize, circuleBackSize)
+        seasonCircle.baseOffset = seasonCircleBackBaseOffset
+        seasonCircle.alpha = 0.9
+--[[
+        --White background for the circular panel
+        local seasonCircleBack = ModelView.new(myMainView)
+        seasonCircleBack:setModel(model:modelIndexForName("ui_circleBackgroundLargeOutline"))
+        seasonCircleBack.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonCircleBack.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
+        seasonCircleBack.size = vec2(circleViewSize, circleViewSize)
+        seasonCircleBack.baseOffset = seasonCircleBaseOffset
+        seasonCircleBack.alpha = 0.9
+--]]
+
+        --The background panel for the text.  It is snuggled up to the rightmost edge of the vanilla time control
         local myPanelView = ModelView.new(myMainView)
         myPanelView:setModel(model:modelIndexForName("ui_panel_10x2"))
         myPanelView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
@@ -94,6 +117,7 @@ function mod:onload(timeControls)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
         yearTextView.baseOffset = yearBaseOffset
+        --Is this the best way to keep these updated in near-real time?  I really am not even sure how this works and what dt is :)  Server ticks?
         yearTextView.update = function(dt)
             yearTextView.text = "Year " .. tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
         end
@@ -109,14 +133,25 @@ function mod:onload(timeControls)
             dayTextView.text = "Day  " .. tostring((math.floor(world_:getWorldTime()/world_:getDayLength())) % 8 + 1)
         end
 
-        --Circlular panel to create a bookend to the clock icon on the vanilla time control
-        local seasonCircle = ModelView.new(myPanelView)
-        seasonCircle:setModel(model:modelIndexForName("ui_circleBackgroundSmall"))
-        seasonCircle.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-        seasonCircle.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
-        seasonCircle.size = vec2(circleViewSize, circleViewSize)
-        seasonCircle.baseOffset = seasonCircleBaseOffset
-        seasonCircle.alpha = 0.9
+
+
+        --[[
+        --Circlular backdrop for the tree
+        local seasonBackgroundCircle = ModelView.new(myPanelView)
+        seasonBackgroundCircle:setModel(model:modelIndexForName("timeControlSeasonBackground"), {
+            [material.types.ui_background.index] = backgroundMaterialText,
+            [material.types.ui_background.color] = vec3(0.05,0.2,0.4),
+            [material.types.ui_standard.index] = materialCircle
+            --[material.types.timeControlSeasonBackground.color] = vec3(0.05,0.2,0.4),
+            --[material.types.timeControlSeasonBackground.metal] = 1.0
+        })
+        seasonBackgroundCircle.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonBackgroundCircle.relativeView = seasonCircle
+        seasonBackgroundCircle.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
+        seasonBackgroundCircle.size = vec2(circleViewSize, circleViewSize)
+        --seasonBackgroundCircle.baseOffset = seasonBackgroundCircleBaseOffset
+        seasonBackgroundCircle.alpha = 0.9
+        --]]
 
         --A ModelView to show the tree to represent the season
         local seasonTreeImage = ModelView.new(myPanelView)
