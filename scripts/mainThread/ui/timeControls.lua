@@ -44,21 +44,20 @@ function mod:onload(timeControls)
         --Custom UI components for displaying the additional information.
         
         --Dimensions of the UI objects
-        local panelSizeToUse = vec2(110.0, 61.0)
-        local circleViewSize = 60.0
-        local offsetFromGamePanel = 206.0 --The offset from the vanilla timeControl panel       
-              
+        local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
+        local circleViewSize = 61.0
+
         --Positioning things - vec3(x, y, z)
+        local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
         local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
         local yearBaseOffset = vec3(12,50,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(12,34,0)                     --offset for the day text control.
-        local seasonCircleBaseOffset = vec3(75.0, 59.0, 1.0)    --offset for the circle panel bookend
-        local seasonTreeBaseOffset = vec3(90.0, 26.0, 20.0)     --offset for the seasonal tree icon
+        local seasonCircleBaseOffset = vec3(75.0, 60.0, 1.0)    --offset for the circle panel bookend
+        local seasonTreeBaseOffset = vec3(90.0, 27.0, 20.0)     --offset for the seasonal tree icon
 
         --Scaling
-        local circleBackgroundScale = circleViewSize * 0.48     --Not sure how this works but played with this number till it lined up
+        local circleBackgroundScale = circleViewSize * 0.48
         local seasonTreeImageScale = circleViewSize * 0.11
-        --These are legacy from the code in the vanilla timeControls implementation.  I am not sure when the flexibility they bring is used
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
 
@@ -74,7 +73,7 @@ function mod:onload(timeControls)
         seasonCircleBack:setModel(model:modelIndexForName("ui_circleBackgroundLargeOutline",
         {
             [material.types.ui_background.index] = material.types.ui_background_blue.index,
-            [material.types.ui_standard.index] = material.types.ui_selected.index,
+            [material.types.ui_standard.index] = material.types.ui_selected.index
         }))
         seasonCircleBack.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonCircleBack.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
@@ -111,12 +110,12 @@ function mod:onload(timeControls)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
         yearTextView.baseOffset = yearBaseOffset
-        --Is this the best way to keep these updated in near-real time?  I really am not even sure how this works and what dt is :)  Server ticks?
+        --Is this the best way to keep these updated in near-real time?  I really am not even sure how this works and what "dt" is... Server ticks?
         yearTextView.update = function(dt)
             yearTextView.text = "Year " .. tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
         end
 
-        --The day text, and the update function to keep it refreshed with the correct value
+        --The day of year text, and the update function to keep it refreshed with the correct value
         dayTextView = TextView.new(myPanelView)
         dayTextView.font = Font(uiCommon.fontName, 16)
         dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
