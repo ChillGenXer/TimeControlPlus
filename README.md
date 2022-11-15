@@ -14,16 +14,16 @@ More information about [Time](https://wiki.playsapiens.com/index.php/Time) in Sa
 
 The Apple Tree is used as the season icon and will change based on the current season:
 
-''Spring'', pink blooms on the apple tree<br>
+**Spring**, pink blooms on the apple tree<br>
 ![Spring](/assets/spring.png)
 
-'''Summer''', green leaves
+**Summer**, green leaves<br>
 ![Summer](/assets/summer.png)
 
-'''Autumn''', the leaves are beginning to yellow
+**Autumn**, the leaves are beginning to yellow<br>
 ![Autumn](/assets/autumn.png)
 
-'''Winter''', no leaves
+**Winter**, no leaves<br>
 ![Winter](/assets/winter.png)
 
 The season indicated by the icon is based only on the day of the year it is, so it is a meteorological season determination.  The Sapiens game is built on a planet renderer and the climate model is quite sophisticated.  Much like real life the plant foliage and ground cover will change gradually across seasonal boundaries - it is not a dramatic landscape change at the precise time the season changes.
