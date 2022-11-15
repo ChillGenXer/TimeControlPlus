@@ -1,17 +1,16 @@
---TimeControlsPlus
---Mod for displaying the current year, day and season alongside the vanilla in-game time control.
---
---Author: chillgenxer@gmail.com
---@ChillGenXer
+--- TimeControlsPlus: timeControls.lua
+--- @author ChillGenXer
+--Mod for displaying a calendar and time in Sapiens.
 
 --Imports
 local mjm = mjrequire "common/mjm"
-local vec3 = mjm.vec3
-local vec2 = mjm.vec2
 local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local material = mjrequire "common/material"
 local localPlayer = mjrequire "mainThread/localPlayer"
+
+local vec2 = mjm.vec2
+local vec3 = mjm.vec3
 local dot = mjm.dot
 
 --Default mod load order
@@ -20,30 +19,30 @@ local mod = {
 }
 
 function mod:onload(timeControls)
-    local superTimeControls = timeControls.init
+    local super_timeControls = timeControls.init
 
     timeControls.init = function(timeControls_, gameUI_, world_)
         
-        --Run the vanilla control first before our code.  Our changes will be additive to the existing ones.
-	    superTimeControls(timeControls_, gameUI_, world_)
+        --Run the vanilla control first before our code.  Our changes will be additive to the existing UI.
+	    super_timeControls(timeControls_, gameUI_, world_)
         
-        --Calculate which season it is.
+        ---Calculate which season it is.
         local function getSeason()
             
-
+            --Object to hold the attributes
             local seasonObject = {
                 treeModel = nil,
                 seasonText = nil
             }
 
-            --TODO get this from the right place
+            --Get the players position to determine if they are in the southern hemisphere
             local playerPosition = localPlayer:getPos()
             local isSouthHemisphere = dot(playerPosition, vec3(0.0,1.0,0.0)) < 0.0
 
             --Calculate the seasonal fraction. 0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
             local seasonFraction = math.fmod(world_.yearSpeed * world_:getWorldTime(), 1.0)
             
-            --This is horrible
+            --This switch implementation makes me uncomfortable
             if (seasonFraction >= 0) and (seasonFraction < 0.25) then
                 if isSouthHemisphere then
                     seasonObject.treeModel = "appleTreeAutumn"
@@ -62,7 +61,7 @@ function mod:onload(timeControls)
                 end
             elseif (seasonFraction >= 0.50) and (seasonFraction < 0.75) then
                 if isSouthHemisphere then
-                    seasonObject.treeModel = "appleTreSpring"
+                    seasonObject.treeModel = "appleTreeSpring"
                     seasonObject.seasonText = "Spring"
                 else
                     seasonObject.treeModel = "appleTreeAutumn"
@@ -81,16 +80,17 @@ function mod:onload(timeControls)
             return seasonObject
         end
 
-        --Custom UI components for displaying the additional information.
+        --Custom UI components for displaying calendar information.
         
         --UI Components
-        local myMainView = nil
-        local seasonCircleBack = nil
-        local myPanelView = nil
-        local seasonTreeImage = nil
-        local yearTextView = nil
-        local dayTextView = nil
-        local timeClockText = nil
+        local myMainView = nil                                  --Invisible anchor to the GameUI
+        local seasonCircleBack = nil                            --Circle the tree icon sits inside of
+        local myPanelView = nil                                 --Panel where year, day and time are displayed
+        local seasonTreeImage = nil                             --The tree season icon
+        local yearTextView = nil                                --The year label
+        local dayTextView = nil                                 --The day label
+        local timeClockText = nil                               --The digital clock
+        local timeClockUTCLabel = nil                           --UTC label. Seperate so it doesn't bounce around when the clock is updating
 
         --Dimensions of the UI objects
         local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
@@ -103,10 +103,11 @@ function mod:onload(timeControls)
         local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
         local timeClockTextBaseOffset = vec3(9,20,0)
+        local timeClockUTCLabelBaseOffset = vec3(45,20,0)
         local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
         local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.01)     --offset for the seasonal tree icon
 
-        --Scaling
+        --3D Scaling
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
         local circleBackgroundScale = circleViewSize * 0.5
@@ -144,7 +145,7 @@ function mod:onload(timeControls)
        
         --A ModelView to show the tree to represent the season
         seasonTreeImage = ModelView.new(myPanelView)
-        seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
+        --seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
         seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
         seasonTreeImage.size = vec2(seasonTreeImageSize, seasonTreeImageSize)
@@ -186,51 +187,39 @@ function mod:onload(timeControls)
         timeClockText.relativeView = myPanelView
         timeClockText.baseOffset = timeClockTextBaseOffset
         timeClockText.update = function(dt)
-            --[[
-            local hour = math.floor((world_:getWorldTime() % world_:getDayLength()) / (world_:getDayLength()/24))
- 
-            local txtHour = nil
-            if hour < 10 then
-                txtHour = "0" .. tostring(hour)
+            local secondsElapsedInDay = world_:getWorldTime() % world_:getDayLength()       --How many real world seconds have elapsed in this day
+            local gameHourInSeconds = world_:getDayLength()/24                              --Calculate this to future-proof for server owners changing it
+            local gameMinuteInSeconds = world_:getDayLength()/1440                          --Calculate how long a game minute is in real world seconds
+
+            local gameTimeHour = math.floor(secondsElapsedInDay / gameHourInSeconds)                            --The hour to display
+            local gameTimeMinute = math.floor((secondsElapsedInDay % gameHourInSeconds)/gameMinuteInSeconds)    --The minute to display
+            
+            --Convert hour to text.  I'm sure there is a lua text mask I can use to clean this up
+            local txtGameTimeHour = nil
+            if gameTimeHour < 10 then
+                txtGameTimeHour = "0" .. tostring(gameTimeHour)
             else
-                txtHour = tostring(hour)
+                txtGameTimeHour = tostring(gameTimeHour)
             end
 
-            local minute = math.floor(math.floor((world_:getWorldTime() % world_:getDayLength())) - (hour * (world_:getDayLength()/24))) / (world_:getDayLength()/24)
-            local txtMinute = nil
-            if minute < 10 then
-                txtMinute = "0" .. tostring(minute)
+            local txtGameTimeMinute = nil
+            if gameTimeMinute < 10 then
+                txtGameTimeMinute = "0" .. tostring(gameTimeMinute)
             else
-                txtMinute = tostring(minute)
+                txtGameTimeMinute = tostring(gameTimeMinute)
             end
 
-            timeClockText.text = txtHour .. ":" .. txtMinute .. " UTC"
-            --]]
-            timeClockText.text = "00:00 UTC"
+            timeClockText.text = txtGameTimeHour .. ":" .. txtGameTimeMinute
         end
+
+        --UTC label for the clock
+        timeClockUTCLabel = TextView.new(myPanelView)
+        timeClockUTCLabel.font = Font(uiCommon.fontName, 13)
+        timeClockUTCLabel.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        timeClockUTCLabel.relativeView = myPanelView
+        timeClockUTCLabel.baseOffset = timeClockUTCLabelBaseOffset
+        timeClockUTCLabel.text = "UTC"
     end
 end
 
 return mod
-
---[[@ChillGenXer little bit of code review: You should include the name of the mod & file in your block comment, since the first line is logged during errors.
-[10:23 AM]
-Also you should use Lua-doc comments if you can
-[10:23 AM]
---- CreativeMode: constructableUIHelper.lua
---- @author SirLich
-[10:23 AM]
-This is how I'm doing it. There are other @ fields as well.
-[10:23 AM]
-local superTimeControls = timeControls.init
-
-Use an underscore like super_timeControls this preserves the original function casing.
-
-
-So make Scripts/TimeControlPlus/TimeControlPlus.lua and then call this file inside of TimeControlPlus/scripts/mainThread/ui/TimeControls.lua
-It would be something like this:
-
-super_TimeControls(timeControls_, gameUI_, world_)
-TimeControlsPlus:init(timeControls, gameUI, world)
-
---]]
