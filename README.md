@@ -14,7 +14,7 @@ More information about [Time](https://wiki.playsapiens.com/index.php/Time) in Sa
 
 The Apple Tree is used as the season icon and will change based on the current season:
 
-'''Spring''', pink blooms on the apple tree
+''Spring'', pink blooms on the apple tree<br>
 ![Spring](/assets/spring.png)
 
 '''Summer''', green leaves
