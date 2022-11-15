@@ -1,6 +1,6 @@
 # TimeControlPlus
 
-A mod for the fantastic colony sim ![Sapiens](https://store.steampowered.com/app/1060230/Sapiens/).  This mod adds a new component to the Time Control HUD in the upper left-hand corner of the screen showing the current year, day of the year (1-8) and current season.
+A mod for the fantastic colony sim [Sapiens](https://store.steampowered.com/app/1060230/Sapiens/).  This mod adds a new component to the Time Control HUD in the upper left-hand corner of the screen showing the current year, day of the year (1-8) and current season.
 
 ## Overview
 
@@ -8,7 +8,7 @@ Understanding how this mod works requires a brief explanation of how time progre
 
 The year and day of the year are calculated by taking the age of the world in seconds and dividing by the configured length of a day.  When you begin a game, you will not necessarily start on day 1 as there are many factors that are considered: where on the globe you start, time passed once you have selected your world, time of day at the location you start a new world, and others.  The exact time that your day increments will be based on the time of day it was when you first started playing on a newly generated world.  This is an accurate definition of how many days you have been playing a world but doesn't match the real-world convention of the day incrementing at midnight.
 
-More information about ![Time](https://wiki.playsapiens.com/index.php/Time) can be found on the ![Sapiens Official Wiki](https://wiki.playsapiens.com).
+More information about [Time](https://wiki.playsapiens.com/index.php/Time) can be found on the [Sapiens Official Wiki](https://wiki.playsapiens.com).
 
 ## Seasons
 
@@ -23,19 +23,20 @@ The season indicated by the icon is based only on the day of the year it is, so 
 
 ## Known Issues
 
-* There is a sporadic crash occasionally when a notification is shown.  For the time being restarting the game will continue as normal.  Sorry about this while I figure out how this crash is related to this mod.
+* Extreme FOV values will skew the apple tree icon.  I don't plan on doing anything about that at the moment.
 
 ## Future Enhancements
-* The mod is currently not adjusting for southern hemisphere starts.
-* Possibly add a 24-hour clock.
+* The mod is currently not adjusting for southern hemisphere starts
+* Tooltips on the items with additional statistics
+* Possibly add a 24-hour clock
 
 ## Support
 
-Please email ![chillgenxer@gmail.com](mailto:chillgenxer@gmail.com) for any bug reports or enhancement suggestions.
+Please email [chillgenxer@gmail.com](mailto:chillgenxer@gmail.com) for any bug reports or enhancement suggestions.
 
 ## Interested in creating a mod?
 
 Sapiens was built from the ground up with modding in mind.  If you are interested in creating a mod for Sapiens check out the resources below.
 
-![Official Sapiens Modding Site](https://github.com/Majic-Jungle/sapiens-mod-creation)
-![Communinity Modding Site](https://wiki.sapiens.dev/)
+[Official Sapiens Modding Site](https://github.com/Majic-Jungle/sapiens-mod-creation)
+[Communinity Modding Site](https://wiki.sapiens.dev/)
