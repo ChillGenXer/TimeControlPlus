@@ -32,7 +32,7 @@ The season indicated by the icon is based only on the day of the year it is, so 
 
 ## Support
 
-Please email [chillgenxer@gmail.com](mailto:chillgenxer@gmail.com) for any bug reports or enhancement suggestions.
+Please [raise an issue](https://github.com/ChillGenXer/TimeControlPlus/issues) for any bug reports or enhancement suggestions.
 
 ## Interested in creating a mod?
 
