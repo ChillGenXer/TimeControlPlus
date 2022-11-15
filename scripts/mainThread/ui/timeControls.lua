@@ -11,6 +11,8 @@ local vec2 = mjm.vec2
 local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local material = mjrequire "common/material"
+local localPlayer = mjrequire "mainThread/localPlayer"
+local dot = mjm.dot
 
 --Default mod load order
 local mod = {
@@ -26,50 +28,85 @@ function mod:onload(timeControls)
 	    superTimeControls(timeControls_, gameUI_, world_)
 
         local function getSeason()
-        --Calculate which season it is.
---[[          
-            local season = {
+            --Calculate which season it is.
+
+            local seasonObject = {
                 treeModel = nil,
                 seasonText = nil
             }
 
-        ]]
-        --TODO Add southern hemisphere check.  Not sure where to get it properly, had a few crashes
-           local seasonFraction = math.fmod(world_.yearSpeed * world_:getWorldTime(), 1.0)
-           
-           --0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.  There's probably a more elegant
-           --way to do this.
-           if (seasonFraction >= 0) and (seasonFraction < 0.25) then
-                return "appleTreeSpring"
+            --TODO get this from the right place
+            local playerPosition = localPlayer:getPos()
+            local isSouthHemisphere = dot(playerPosition, vec3(0.0,1.0,0.0)) < 0.0
+
+            --Calculate the seasonal fraction. 0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
+            local seasonFraction = math.fmod(world_.yearSpeed * world_:getWorldTime(), 1.0)
+            
+            --This is horrible
+            if (seasonFraction >= 0) and (seasonFraction < 0.25) then
+                if isSouthHemisphere then
+                    seasonObject.treeModel = "appleTreeAutumn"
+                    seasonObject.seasonText = "Autumn"
+                else
+                    seasonObject.treeModel = "appleTreeSpring"
+                    seasonObject.seasonText = "Spring"
+                end
             elseif (seasonFraction >= 0.25) and (seasonFraction < 0.50) then
-                return "appleTree"
+                if isSouthHemisphere then
+                    seasonObject.treeModel = "appleTreeWinter"
+                    seasonObject.seasonText = "Winter"
+                else
+                    seasonObject.treeModel = "appleTree"
+                    seasonObject.seasonText = "Summer"
+                end
             elseif (seasonFraction >= 0.50) and (seasonFraction < 0.75) then
-                return "appleTreeAutumn"
+                if isSouthHemisphere then
+                    seasonObject.treeModel = "appleTreSpring"
+                    seasonObject.seasonText = "Spring"
+                else
+                    seasonObject.treeModel = "appleTreeAutumn"
+                    seasonObject.seasonText = "Autumn"
+                end
             else
-                return "appleTreeWinter"
+                if isSouthHemisphere then
+                    seasonObject.treeModel = "appleTree"
+                    seasonObject.seasonText = "Summer"
+                else
+                    seasonObject.treeModel = "appleTreeWinter"
+                    seasonObject.seasonText = "Winter"
+                end
             end
+
+            return seasonObject
         end
 
         --Custom UI components for displaying the additional information.
+        
+        --UI Components
+        --local myMainView = nil
+        --local seasonCircleBack = nil
+        --myPanelView
+        --seasonTreeImage
+        --yearTextView
 
         --Dimensions of the UI objects
         local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
-        local circleViewSize = 60.0
-        local seasonTreeImageSize = 14.0
+        local circleViewSize = 60.0                             --Size of the circle the tree sits in
+        local seasonTreeImageSize = 14.0                        --Size of the model
 
         --Positioning things - vec3(x, y, z)
         local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
         local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
         local yearBaseOffset = vec3(12,50,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(12,34,0)                     --offset for the day text control.
-        local seasonCircleBaseOffset = vec3(75.0, 60.0, 1.0)    --offset for the circle panel bookend
-        local seasonTreeBaseOffset = vec3(27.0, 13.0, 1.02)      --offset for the seasonal tree icon
+        local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
+        local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.01)        --offset for the seasonal tree icon
 
         --Scaling
-        local circleBackgroundScale = circleViewSize * 0.5
-        local seasonTreeImageScale = seasonTreeImageSize * 0.5
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
+        local circleBackgroundScale = circleViewSize * 0.5
+        local seasonTreeImageScale = seasonTreeImageSize * 0.5
 
         --UI anchor to the main game screen.  This is invisible and will be used to attach the new visible components.
         myMainView = View.new(gameUI_.view)
@@ -112,7 +149,8 @@ function mod:onload(timeControls)
         seasonTreeImage.alpha = 1.0
         seasonTreeImage.update = function(dt)
             --Update the image based on what season it is.
-            seasonTreeImage:setModel(model:modelIndexForName(getSeason()))
+            local season = getSeason()
+            seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
         end
 
         --The year text, and the update function to keep it refreshed with the correct value
