@@ -186,6 +186,7 @@ function mod:onload(timeControls)
         timeClockText.relativeView = myPanelView
         timeClockText.baseOffset = timeClockTextBaseOffset
         timeClockText.update = function(dt)
+            --[[
             local hour = math.floor((world_:getWorldTime() % world_:getDayLength()) / (world_:getDayLength()/24))
  
             local txtHour = nil
@@ -204,6 +205,8 @@ function mod:onload(timeControls)
             end
 
             timeClockText.text = txtHour .. ":" .. txtMinute .. " UTC"
+            --]]
+            timeClockText.text = "00:00 UTC"
         end
     end
 end
