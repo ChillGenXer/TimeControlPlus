@@ -39,4 +39,4 @@ Please [raise an issue](https://github.com/ChillGenXer/TimeControlPlus/issues) f
 Sapiens was built from the ground up with modding in mind.  If you are interested in creating a mod for Sapiens check out the resources below.
 
 * [Official Sapiens Modding Site](https://github.com/Majic-Jungle/sapiens-mod-creation)
-* [Communinity Modding Site](https://wiki.sapiens.dev/)
+* [Community Modding Site](https://wiki.sapiens.dev/)
