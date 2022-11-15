@@ -6,7 +6,6 @@ local modInfo = {
   type = "world",
   developer = "ChillGenXer",
   website = "https://github.com/ChillGenXer/TimeControlPlus",
-  loadOrder = 1, --default load order for all assets for this mod. Higher numbers are loaded after lower numbers. 
-  --For lua scripts, this can be optionally overriden in the mod table per lua script.
+  loadOrder = 1,
 }
 return modInfo

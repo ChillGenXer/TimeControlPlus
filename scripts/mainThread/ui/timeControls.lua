@@ -26,9 +26,10 @@ function mod:onload(timeControls)
         
         --Run the vanilla control first before our code.  Our changes will be additive to the existing ones.
 	    superTimeControls(timeControls_, gameUI_, world_)
-
+        
+        --Calculate which season it is.
         local function getSeason()
-            --Calculate which season it is.
+            
 
             local seasonObject = {
                 treeModel = nil,
@@ -83,11 +84,13 @@ function mod:onload(timeControls)
         --Custom UI components for displaying the additional information.
         
         --UI Components
-        --local myMainView = nil
-        --local seasonCircleBack = nil
-        --myPanelView
-        --seasonTreeImage
-        --yearTextView
+        local myMainView = nil
+        local seasonCircleBack = nil
+        local myPanelView = nil
+        local seasonTreeImage = nil
+        local yearTextView = nil
+        local dayTextView = nil
+        local timeClockText = nil
 
         --Dimensions of the UI objects
         local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
@@ -97,10 +100,11 @@ function mod:onload(timeControls)
         --Positioning things - vec3(x, y, z)
         local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
         local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
-        local yearBaseOffset = vec3(12,50,0)                    --offset for the year text control.
-        local dayBaseOffset = vec3(12,34,0)                     --offset for the day text control.
+        local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
+        local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
+        local timeClockTextBaseOffset = vec3(9,20,0)
         local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
-        local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.01)        --offset for the seasonal tree icon
+        local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.01)     --offset for the seasonal tree icon
 
         --Scaling
         local panelScaleToUseX = panelSizeToUse.x * 0.5
@@ -116,7 +120,7 @@ function mod:onload(timeControls)
         myMainView.size = panelSizeToUse
 
         --Circular Model to hold the tree icon
-        local seasonCircleBack = ModelView.new(myMainView)
+        seasonCircleBack = ModelView.new(myMainView)
         seasonCircleBack:setModel(model:modelIndexForName("ui_circleBackgroundLargeOutline",
         {
             [material.types.ui_background.index] = material.types.ui_background_blue.index,
@@ -129,7 +133,7 @@ function mod:onload(timeControls)
         seasonCircleBack.alpha = 0.70
 
         --The background panel for the text.  It is snuggled up to the rightmost edge of the vanilla time control
-        local myPanelView = ModelView.new(myMainView)
+        myPanelView = ModelView.new(myMainView)
         myPanelView:setModel(model:modelIndexForName("ui_panel_10x2"))
         myPanelView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
         myPanelView.relativeView = myMainView
@@ -139,7 +143,7 @@ function mod:onload(timeControls)
         myPanelView.alpha = 0.9     --This affects transparency.
        
         --A ModelView to show the tree to represent the season
-        local seasonTreeImage = ModelView.new(myPanelView)
+        seasonTreeImage = ModelView.new(myPanelView)
         seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
         seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
@@ -155,7 +159,7 @@ function mod:onload(timeControls)
 
         --The year text, and the update function to keep it refreshed with the correct value
         yearTextView = TextView.new(myPanelView)
-        yearTextView.font = Font(uiCommon.fontName, 16)
+        yearTextView.font = Font(uiCommon.fontName, 15)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
         yearTextView.baseOffset = yearBaseOffset
@@ -166,7 +170,7 @@ function mod:onload(timeControls)
 
         --The day of year text, and the update function to keep it refreshed with the correct value
         dayTextView = TextView.new(myPanelView)
-        dayTextView.font = Font(uiCommon.fontName, 16)
+        dayTextView.font = Font(uiCommon.fontName, 15)
         dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         dayTextView.relativeView = myPanelView
         dayTextView.baseOffset = dayBaseOffset
@@ -174,21 +178,56 @@ function mod:onload(timeControls)
             --Calculate the day of the year.
             dayTextView.text = "Day  " .. tostring((math.floor(world_:getWorldTime()/world_:getDayLength())) % 8 + 1)
         end
+
+        --Digital Clock
+        timeClockText = TextView.new(myPanelView)
+        timeClockText.font = Font(uiCommon.fontName, 13)
+        timeClockText.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        timeClockText.relativeView = myPanelView
+        timeClockText.baseOffset = timeClockTextBaseOffset
+        timeClockText.update = function(dt)
+            local hour = math.floor((world_:getWorldTime() % world_:getDayLength()) / (world_:getDayLength()/24))
+ 
+            local txtHour = nil
+            if hour < 10 then
+                txtHour = "0" .. tostring(hour)
+            else
+                txtHour = tostring(hour)
+            end
+
+            local minute = math.floor(math.floor((world_:getWorldTime() % world_:getDayLength())) - (hour * (world_:getDayLength()/24))) / (world_:getDayLength()/24)
+            local txtMinute = nil
+            if minute < 10 then
+                txtMinute = "0" .. tostring(minute)
+            else
+                txtMinute = tostring(minute)
+            end
+
+            timeClockText.text = txtHour .. ":" .. txtMinute .. " UTC"
+        end
     end
 end
 
 return mod
 
---Is this related to my code?  Not sure how this is getting impacted by what I have implemented here.
---It seems to be after playing for a long time period, memory leak somewhere maybe?
---
---Resolved!  Fix was introduced in Sapiens 0.3.7
---
---[[
-4724.299898:Exception calling lua function logicinterface.cpp:409 ...on/Sapiens/GameResources/scripts/common/notification.lua:238: attempt to index field 'userData' (a nil value)
-    stack traceback:
-        ...on/Sapiens/GameResources/scripts/common/notification.lua:238: in function 'titleFunction'
-        .../GameResources/scripts/mainThread/ui/notificationsUI.lua:283: in function 'displayNotificationWithInfo'
-        .../GameResources/scripts/mainThread/ui/notificationsUI.lua:352: in function 'displayObjectNotification'
-        ...iens/GameResources/scripts/mainThread/logicInterface.lua:273: in function <...iens/GameResources/scripts/mainThread/logicInterface.lua:255>
+--[[@ChillGenXer little bit of code review: You should include the name of the mod & file in your block comment, since the first line is logged during errors.
+[10:23 AM]
+Also you should use Lua-doc comments if you can
+[10:23 AM]
+--- CreativeMode: constructableUIHelper.lua
+--- @author SirLich
+[10:23 AM]
+This is how I'm doing it. There are other @ fields as well.
+[10:23 AM]
+local superTimeControls = timeControls.init
+
+Use an underscore like super_timeControls this preserves the original function casing.
+
+
+So make Scripts/TimeControlPlus/TimeControlPlus.lua and then call this file inside of TimeControlPlus/scripts/mainThread/ui/TimeControls.lua
+It would be something like this:
+
+super_TimeControls(timeControls_, gameUI_, world_)
+TimeControlsPlus:init(timeControls, gameUI, world)
+
 --]]
