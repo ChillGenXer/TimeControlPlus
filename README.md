@@ -1,19 +1,41 @@
 # TimeControlPlus
 
-A mod for the game Sapiens.  This mod adds a calendar to the Time Control HUD to add seasons, day and year counters.  Currently under development so it's not stable.
+A mod for the fantastic colony sim ![Sapiens](https://store.steampowered.com/app/1060230/Sapiens/).  This mod adds a new component to the Time Control HUD in the upper left-hand corner of the screen showing the current year, day of the year (1-8) and current season.
 
 ## Overview
 
-The year and day of the year are calculated by taking the age of the world in seconds and dividing by the length of a day, both attributes are provided by the world object.
+Understanding how this mod works requires a brief explanation of how time progression is implemented in Sapiens.  Each game year is divided into 4 seasons, with each season having a duration of 2 game days, meaning a year is 8 game days.  From the control you will see the current Year, the current day of the year (day 1-8) as well as a graphical representation of the season. 
 
-## Behavior
+The year and day of the year are calculated by taking the age of the world in seconds and dividing by the configured length of a day.  When you begin a game, you will not necessarily start on day 1 as there are many factors that are considered: where on the globe you start, time passed once you have selected your world, time of day at the location you start a new world, and others.  The exact time that your day increments will be based on the time of day it was when you first started playing on a newly generated world.  This is an accurate definition of how many days you have been playing a world but doesn't match the real-world convention of the day incrementing at midnight.
 
-The season is calculated simply by what day of the year it is, though the game engine does seem to have
-a more complicated determination of what season it is. However, for the purpose of showing the player the season it seems to be a reasonably good guide.
+More information about ![Time](https://wiki.playsapiens.com/index.php/Time) can be found on the ![Sapiens Official Wiki](https://wiki.playsapiens.com).
 
-## Stuff to figure out
+## Seasons
 
-* Not currently taking into account a southern hemisphere start.  Need to figure out where in the lua code to get the southern hemisphere state.
-* Need to clean up the actual panel and seamlessly integrate it with the existing timeControls.
-* Try to add a ModelImageView at the end to show the changing model of an apple tree through the seasons.
-* The day currently changes at noon in my test world.  I am not sure if that would change based on where you started on the globe or when you created the new world in the main menu? I'm suspicious there is more to know here. 
+The Apple Tree is used as the season icon and will change based on the current season:
+
+![Spring](/assets/spring.png) - Spring, pink blooms on the apple tree
+![Summer](/assets/summer.png) - Summer, green leaves
+![Autumn](/assets/autumn.png) - Autumn, the leaves are beginning to yellow
+![Winter](/assets/winter.png) - Winter, no leaves
+
+The season indicated by the icon is based only on the day of the year it is, so it is a meteorological season determination.  The Sapiens game is built on a planet renderer and the climate model is quite sophisticated.  Much like real life the plant foliage and ground cover will change gradually across seasonal boundaries - it is not a dramatic landscape change at the precise time a season changes.
+
+## Known Issues
+
+* There is a sporadic crash occasionally when a notification is shown.  For the time being restarting the game will continue as normal.  Sorry about this while I figure out how this crash is related to this mod.
+
+## Future Enhancements
+* The mod is currently not adjusting for southern hemisphere starts.
+* Possibly add a 24-hour clock.
+
+## Support
+
+Please email ![chillgenxer@gmail.com](mailto:chillgenxer@gmail.com) for any bug reports or enhancement suggestions.
+
+## Interested in creating a mod?
+
+Sapiens was built from the ground up with modding in mind.  If you are interested in creating a mod for Sapiens check out the resources below.
+
+![Official Sapiens Modding Site](https://github.com/Majic-Jungle/sapiens-mod-creation)
+![Communinity Modding Site](https://wiki.sapiens.dev/)

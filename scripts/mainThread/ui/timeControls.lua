@@ -1,6 +1,8 @@
---timeControlsPlus
+--TimeControlsPlus
 --Mod for displaying the current year, day and season alongside the vanilla in-game time control.
+--
 --Author: chillgenxer@gmail.com
+--@ChillGenXer
 
 --Imports
 local mjm = mjrequire "common/mjm"
@@ -25,6 +27,13 @@ function mod:onload(timeControls)
 
         local function getSeason()
         --Calculate which season it is.
+--[[          
+            local season = {
+                treeModel = nil,
+                seasonText = nil
+            }
+
+        ]]
         --TODO Add southern hemisphere check.  Not sure where to get it properly, had a few crashes
            local seasonFraction = math.fmod(world_.yearSpeed * world_:getWorldTime(), 1.0)
            
@@ -42,10 +51,11 @@ function mod:onload(timeControls)
         end
 
         --Custom UI components for displaying the additional information.
-        
+
         --Dimensions of the UI objects
         local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
-        local circleViewSize = 61.0
+        local circleViewSize = 60.0
+        local seasonTreeImageSize = 14.0
 
         --Positioning things - vec3(x, y, z)
         local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
@@ -53,11 +63,11 @@ function mod:onload(timeControls)
         local yearBaseOffset = vec3(12,50,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(12,34,0)                     --offset for the day text control.
         local seasonCircleBaseOffset = vec3(75.0, 60.0, 1.0)    --offset for the circle panel bookend
-        local seasonTreeBaseOffset = vec3(90.0, 27.0, 20.0)     --offset for the seasonal tree icon
+        local seasonTreeBaseOffset = vec3(27.0, 13.0, 1.02)      --offset for the seasonal tree icon
 
         --Scaling
-        local circleBackgroundScale = circleViewSize * 0.48
-        local seasonTreeImageScale = circleViewSize * 0.11
+        local circleBackgroundScale = circleViewSize * 0.5
+        local seasonTreeImageScale = seasonTreeImageSize * 0.5
         local panelScaleToUseX = panelSizeToUse.x * 0.5
         local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
 
@@ -96,8 +106,9 @@ function mod:onload(timeControls)
         seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
         seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
-        seasonTreeImage.size = vec2(circleViewSize, circleViewSize)
+        seasonTreeImage.size = vec2(seasonTreeImageSize, seasonTreeImageSize)
         seasonTreeImage.baseOffset = seasonTreeBaseOffset
+        seasonTreeImage.relativeView = seasonCircleBack
         seasonTreeImage.alpha = 1.0
         seasonTreeImage.update = function(dt)
             --Update the image based on what season it is.
@@ -132,7 +143,9 @@ return mod
 
 --Is this related to my code?  Not sure how this is getting impacted by what I have implemented here.
 --It seems to be after playing for a long time period, memory leak somewhere maybe?
-
+--
+--Resolved!  Fix was introduced in Sapiens 0.3.7
+--
 --[[
 4724.299898:Exception calling lua function logicinterface.cpp:409 ...on/Sapiens/GameResources/scripts/common/notification.lua:238: attempt to index field 'userData' (a nil value)
     stack traceback:
