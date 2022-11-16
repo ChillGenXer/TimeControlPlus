@@ -1,0 +1,39 @@
+This mod adds a new component to the Time Control HUD in the upper left-hand corner of the screen showing the current year, day of the year (1-8), UTC time and current season as an icon.
+
+[h2]Overview[/h2]
+First a brief explanation of how time progression works in Sapiens.  Each game year is divided into 4 seasons, with each season having a duration of 2 game days, meaning a game year is 8 game days.  The new control provides the current Year, the current day of the year (day 1-8), world time, as well as a graphical representation of the season. 
+
+When you begin a game, you will not necessarily start on day 1 as there are many factors that are considered: where on the globe you start, time passed once you have selected your world, time of day at the location you start a new world, and others.  The exact spot on the original sundial that a game day changes will be based on the clock marker position when you first started playing a newly generated world.  However the day will change at 00:00 UTC on the mod's digital clock, it just won't line up on the sundial to midnight.
+
+More information about [url=https://wiki.playsapiens.com/index.php/Time]Time[/url] in Sapiens can be found on the [url=https://wiki.playsapiens.com]Sapiens Official Wiki[/url].
+
+[h2]Seasons[/h2]
+
+An Apple Tree is used as the season icon and will change based on the current season.
+[h3]Spring[/h3] - Pink blooms on the apple tree.
+[h3]Summer[/h3] - Green leaves.
+[h3]Autumn[/h3] - Leaves are beginning to yellow.
+[h3]Winter[/h3] - No leaves.
+
+The season indicated by the icon is based only on the day of the year it is, so it is a meteorological season determination.  The Sapiens game is built on a planet renderer and the climate model is quite sophisticated.  Much like real life the plant foliage and ground cover will change gradually as you approach seasonal boundaries - it is not a dramatic landscape change at the precise time the season changes.
+
+[h2]Known Issues[/h2]
+[list]
+[*] Extreme FOV values will skew the apple tree icon.  I don't plan on doing anything about that at the moment.
+[/list]
+
+[h2]Future Enhancements[/h2]
+[list]
+[*] Tooltips on the items with additional statistics
+[/list]
+
+[h2]Support[/h2]
+Please [url=https://github.com/ChillGenXer/TimeControlPlus/issues]raise an issue[/url] for any bug reports or enhancement suggestions.
+
+[h2]Interested in creating your own mod?[/h2]
+Sapiens was built from the ground up with modding in mind.  If you are interested in creating a mod for Sapiens check out the resources below.
+
+[list]
+[*] [url=https://github.com/Majic-Jungle/sapiens-mod-creation]Official Sapiens Modding Site[/url]
+[*] [url=https://wiki.sapiens.dev/]Community Modding Site[/url]
+[/list]
