@@ -6,12 +6,15 @@
 local mjm = mjrequire "common/mjm"
 local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
+local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 local material = mjrequire "common/material"
 local localPlayer = mjrequire "mainThread/localPlayer"
 
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
 local dot = mjm.dot
+
+local currentSeason = nil
 
 --Default mod load order
 local mod = {
@@ -106,6 +109,7 @@ function mod:onload(timeControls)
         local timeClockUTCLabelBaseOffset = vec3(45,20,0)
         local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
         local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.01)     --offset for the seasonal tree icon
+        local toolTipOffset = vec3(0,-10,0)                     --offset for tooltips
 
         --3D Scaling
         local panelScaleToUseX = panelSizeToUse.x * 0.5
@@ -142,7 +146,11 @@ function mod:onload(timeControls)
         myPanelView.scale3D = vec3(panelScaleToUseX,panelScaleToUseY,panelScaleToUseX)
         myPanelView.size = panelSizeToUse
         myPanelView.alpha = 0.9     --This affects transparency.
-       
+        uiToolTip:add(myPanelView, ViewPosition(MJPositionCenter, MJPositionBelow), "", nil, toolTipOffset, nil, myPanelView)
+        myPanelView.update = function(dt)
+            local season = getSeason()
+            uiToolTip:updateText(myPanelView, season.seasonText, nil, false)
+        end
         --A ModelView to show the tree to represent the season
         seasonTreeImage = ModelView.new(myPanelView)
         --seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
@@ -155,7 +163,12 @@ function mod:onload(timeControls)
         seasonTreeImage.update = function(dt)
             --Update the image based on what season it is.
             local season = getSeason()
-            seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
+            if currentSeason ~= season.seasonText then
+                mj:log("Registering New Season")
+                currentSeason = season.seasonText
+                seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
+            end
+            
         end
 
         --The year text, and the update function to keep it refreshed with the correct value
@@ -190,25 +203,11 @@ function mod:onload(timeControls)
             local secondsElapsedInDay = world_:getWorldTime() % world_:getDayLength()       --How many real world seconds have elapsed in this day
             local gameHourInSeconds = world_:getDayLength()/24                              --Calculate this to future-proof for server owners changing it
             local gameMinuteInSeconds = world_:getDayLength()/1440                          --Calculate how long a game minute is in real world seconds
-
             local gameTimeHour = math.floor(secondsElapsedInDay / gameHourInSeconds)                            --The hour to display
             local gameTimeMinute = math.floor((secondsElapsedInDay % gameHourInSeconds)/gameMinuteInSeconds)    --The minute to display
-            
-            --Convert hour to text.  I'm sure there is a lua text mask I can use to clean this up
-            local txtGameTimeHour = nil
-            if gameTimeHour < 10 then
-                txtGameTimeHour = "0" .. tostring(gameTimeHour)
-            else
-                txtGameTimeHour = tostring(gameTimeHour)
-            end
-
-            local txtGameTimeMinute = nil
-            if gameTimeMinute < 10 then
-                txtGameTimeMinute = "0" .. tostring(gameTimeMinute)
-            else
-                txtGameTimeMinute = tostring(gameTimeMinute)
-            end
-
+            --Format the clock digits to add a leading 0 and set the text field
+            local txtGameTimeHour = string.format("%02d", gameTimeHour)
+            local txtGameTimeMinute = string.format("%02d", gameTimeMinute)
             timeClockText.text = txtGameTimeHour .. ":" .. txtGameTimeMinute
         end
 
@@ -223,3 +222,10 @@ function mod:onload(timeControls)
 end
 
 return mod
+
+
+--[[
+--Tooltip Stuff
+uiToolTip:add(pauseButton.userData.backgroundView, ViewPosition(MJPositionCenter, MJPositionBelow), locale:get("misc_Toggle") .. " " .. locale:get("ui_pause"), nil, toolTipOffset, nil, pauseButton)
+uiToolTip:addKeyboardShortcut(pauseButton.userData.backgroundView, "game", "pause", nil, nil)
+ ]]
