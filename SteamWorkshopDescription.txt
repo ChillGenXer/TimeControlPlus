@@ -22,7 +22,7 @@ The season indicated by the icon is based only on the day of the year it is, so 
 [h2]Releases[/h2]
 [list]
 [*] v0.1.0 - Initial Release
-[*] v0.2.0 - Fixed (hopefully) a flickering issue some users are experiencing with the tree.  Added hover text over the clock to show the season.
+[*] v0.3.0 - Fixed (hopefully) a flickering issue some users are experiencing with the tree.  Added hover text over the clock to show the season.
 [/list]
 
 [h2]Future Enhancements[/h2]

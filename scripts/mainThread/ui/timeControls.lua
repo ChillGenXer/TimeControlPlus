@@ -153,7 +153,6 @@ function mod:onload(timeControls)
         end
         --A ModelView to show the tree to represent the season
         seasonTreeImage = ModelView.new(myPanelView)
-        --seasonTreeImage:setModel(model:modelIndexForName("appleTreeAutumn"))
         seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
         seasonTreeImage.size = vec2(seasonTreeImageSize, seasonTreeImageSize)
@@ -164,7 +163,7 @@ function mod:onload(timeControls)
             --Update the image based on what season it is.
             local season = getSeason()
             if currentSeason ~= season.seasonText then
-                mj:log("Registering New Season")
+                --mj:log("Registering New Season")
                 currentSeason = season.seasonText
                 seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
             end
@@ -222,10 +221,3 @@ function mod:onload(timeControls)
 end
 
 return mod
-
-
---[[
---Tooltip Stuff
-uiToolTip:add(pauseButton.userData.backgroundView, ViewPosition(MJPositionCenter, MJPositionBelow), locale:get("misc_Toggle") .. " " .. locale:get("ui_pause"), nil, toolTipOffset, nil, pauseButton)
-uiToolTip:addKeyboardShortcut(pauseButton.userData.backgroundView, "game", "pause", nil, nil)
- ]]
