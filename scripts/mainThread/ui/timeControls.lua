@@ -14,7 +14,15 @@ local vec2 = mjm.vec2
 local vec3 = mjm.vec3
 local dot = mjm.dot
 
+--Other Variables
 local currentSeason = nil
+local timeUTCLabel = "CT"
+local updateInterval = 1                                --Set the tree to only update on this update interval
+local timeAccumulator = 0                               --Accumulator for reducing UI updates
+local myPanelAccumulator = 0
+local yearTextAccumulator = 0
+local dayTextAccumulator = 0
+local timeTextAccumulator = 0
 
 --Default mod load order
 local mod = {
@@ -45,40 +53,33 @@ function mod:onload(timeControls)
             --Calculate the seasonal fraction. 0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
             local seasonFraction = math.fmod(world_.yearSpeed * world_:getWorldTime(), 1.0)
             
-            --This switch implementation makes me uncomfortable
-            if (seasonFraction >= 0) and (seasonFraction < 0.25) then
-                if isSouthHemisphere then
-                    seasonObject.treeModel = "appleTreeAutumn"
-                    seasonObject.seasonText = "Autumn"
-                else
-                    seasonObject.treeModel = "appleTreeSpring"
-                    seasonObject.seasonText = "Spring"
-                end
-            elseif (seasonFraction >= 0.25) and (seasonFraction < 0.50) then
-                if isSouthHemisphere then
-                    seasonObject.treeModel = "appleTreeWinter"
-                    seasonObject.seasonText = "Winter"
-                else
-                    seasonObject.treeModel = "appleTree"
-                    seasonObject.seasonText = "Summer"
-                end
-            elseif (seasonFraction >= 0.50) and (seasonFraction < 0.75) then
-                if isSouthHemisphere then
-                    seasonObject.treeModel = "appleTreeSpring"
-                    seasonObject.seasonText = "Spring"
-                else
-                    seasonObject.treeModel = "appleTreeAutumn"
-                    seasonObject.seasonText = "Autumn"
-                end
-            else
-                if isSouthHemisphere then
-                    seasonObject.treeModel = "appleTree"
-                    seasonObject.seasonText = "Summer"
-                else
-                    seasonObject.treeModel = "appleTreeWinter"
-                    seasonObject.seasonText = "Winter"
-                end
-            end
+            --Lookup table for getting the right tree model and text.
+            local seasonLookupTable = {
+                {
+                    treeModel = { "appleTreeSpring", "appleTreeAutumn" },
+                    seasonText = { "Spring", "Autumn" }
+                },
+                {
+                    treeModel = { "appleTree", "appleTreeWinter" },
+                    seasonText = { "Summer", "Winter" }
+                },
+                {
+                    treeModel = { "appleTreeAutumn", "appleTreeSpring" },
+                    seasonText = { "Autumn", "Spring" }
+                },
+                {
+                    treeModel = { "appleTreeWinter", "appleTree" },
+                    seasonText = { "Winter", "Summer" }
+                }
+            }
+            
+            --Get the index & HemisphereOffset we need for the lookup table
+            local index = math.floor(seasonFraction * 4) % 4 + 1
+            local hemisphereOffset = isSouthHemisphere and 2 or 1
+            
+            --Set the season object
+            seasonObject.treeModel = seasonLookupTable[index].treeModel[hemisphereOffset]
+            seasonObject.seasonText = seasonLookupTable[index].seasonText[hemisphereOffset]
 
             return seasonObject
         end
@@ -105,10 +106,10 @@ function mod:onload(timeControls)
         local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
         local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
-        local timeClockTextBaseOffset = vec3(9,20,0)
-        local timeClockUTCLabelBaseOffset = vec3(45,20,0)
+        local timeClockTextBaseOffset = vec3(13,20,0)            --offset for the clock
+        local timeClockUTCLabelBaseOffset = vec3(45,20,0)       --offset for the clock time UTC Label
         local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
-        local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.01)     --offset for the seasonal tree icon
+        local seasonTreeBaseOffset = vec3(30.0, 10.0, 5.02)     --offset for the seasonal tree icon
         local toolTipOffset = vec3(0,-10,0)                     --offset for tooltips
 
         --3D Scaling
@@ -126,11 +127,12 @@ function mod:onload(timeControls)
 
         --Circular Model to hold the tree icon
         seasonCircleBack = ModelView.new(myMainView)
-        seasonCircleBack:setModel(model:modelIndexForName("ui_circleBackgroundLargeOutline",
+        seasonCircleBack:setModel(model:modelIndexForName("ui_circleBackgroundLargeOutline" ,
         {
             [material.types.ui_background.index] = material.types.ui_background_blue.index,
             [material.types.ui_standard.index] = material.types.ui_selected.index
-        }))
+        }
+        ))
         seasonCircleBack.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonCircleBack.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
         seasonCircleBack.size = vec2(circleViewSize, circleViewSize)
@@ -148,10 +150,40 @@ function mod:onload(timeControls)
         myPanelView.alpha = 0.9     --This affects transparency.
         uiToolTip:add(myPanelView, ViewPosition(MJPositionCenter, MJPositionBelow), "", nil, toolTipOffset, nil, myPanelView)
         myPanelView.update = function(dt)
-            local season = getSeason()
-            uiToolTip:updateText(myPanelView, season.seasonText, nil, false)
+            myPanelAccumulator = myPanelAccumulator + dt
+            if myPanelAccumulator >= updateInterval then           -- Check if our target update time has been reached
+                myPanelAccumulator = 0                                 -- Reset the interval
+                local season = getSeason()
+                uiToolTip:updateText(myPanelView, season.seasonText, nil, false)
+            end
+
         end
+
         --A ModelView to show the tree to represent the season
+        seasonTreeImage = ModelView.new(myPanelView)
+        --seasonTreeImage = GameObjectView.new(myPanelView, vec2(128, 128)) --this second argument is the texture image size in pixels that the tree is rendered into
+        seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
+        seasonTreeImage.size = vec2(seasonTreeImageSize, seasonTreeImageSize)
+        seasonTreeImage.baseOffset = seasonTreeBaseOffset
+        seasonTreeImage.relativeView = seasonCircleBack
+        seasonTreeImage.alpha = 1.0
+        seasonTreeImage.update = function(dt)
+            --Update the image based on what season it is.
+            local season = getSeason()
+            if currentSeason ~= season.seasonText then
+                --mj:log("Registering New Season")
+                currentSeason = season.seasonText
+                seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
+            end
+        end
+
+--[[        This is driving me nuts.  For new games it seems to work fine and I haven't seen any flickering but 
+            I have an old save where I can reproduce this, and people still report it so it's a thing.  
+Any advice how to swap out my ModelView with a GameObjectView?  I am trying but I am falling down the rabbit 
+hole of the UI components and how they interact.  Here is how I am instantiating the tree now:
+
+`        --A ModelView to show the tree to represent the season
         seasonTreeImage = ModelView.new(myPanelView)
         seasonTreeImage.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         seasonTreeImage.scale3D = vec3(seasonTreeImageScale,seasonTreeImageScale,seasonTreeImageScale)
@@ -167,8 +199,8 @@ function mod:onload(timeControls)
                 currentSeason = season.seasonText
                 seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
             end
-            
         end
+` ]]
 
         --The year text, and the update function to keep it refreshed with the correct value
         yearTextView = TextView.new(myPanelView)
@@ -178,7 +210,11 @@ function mod:onload(timeControls)
         yearTextView.baseOffset = yearBaseOffset
         --Is this the best way to keep these updated in near-real time?  I really am not even sure how this works and what "dt" is... Server ticks?
         yearTextView.update = function(dt)
-            yearTextView.text = "Year " .. tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
+            yearTextAccumulator = yearTextAccumulator + dt
+            if yearTextAccumulator >= updateInterval then               -- Check if our target update time has been reached
+                yearTextAccumulator = 0                                 -- Reset the interval
+                yearTextView.text = "Year " .. tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
+            end
         end
 
         --The day of year text, and the update function to keep it refreshed with the correct value
@@ -188,8 +224,12 @@ function mod:onload(timeControls)
         dayTextView.relativeView = myPanelView
         dayTextView.baseOffset = dayBaseOffset
         dayTextView.update = function(dt)
-            --Calculate the day of the year.
-            dayTextView.text = "Day  " .. tostring((math.floor(world_:getWorldTime()/world_:getDayLength())) % 8 + 1)
+            dayTextAccumulator = dayTextAccumulator + dt
+            if dayTextAccumulator >= updateInterval then                -- Check if our target update time has been reached
+                dayTextAccumulator = 0                                  -- Reset the interval
+                --Calculate the day of the year.
+                dayTextView.text = "Day  " .. tostring((math.floor(world_:getWorldTime()/world_:getDayLength())) % 8 + 1)
+            end
         end
 
         --Digital Clock
@@ -199,24 +239,28 @@ function mod:onload(timeControls)
         timeClockText.relativeView = myPanelView
         timeClockText.baseOffset = timeClockTextBaseOffset
         timeClockText.update = function(dt)
-            local secondsElapsedInDay = world_:getWorldTime() % world_:getDayLength()       --How many real world seconds have elapsed in this day
-            local gameHourInSeconds = world_:getDayLength()/24                              --Calculate this to future-proof for server owners changing it
-            local gameMinuteInSeconds = world_:getDayLength()/1440                          --Calculate how long a game minute is in real world seconds
-            local gameTimeHour = math.floor(secondsElapsedInDay / gameHourInSeconds)                            --The hour to display
-            local gameTimeMinute = math.floor((secondsElapsedInDay % gameHourInSeconds)/gameMinuteInSeconds)    --The minute to display
-            --Format the clock digits to add a leading 0 and set the text field
-            local txtGameTimeHour = string.format("%02d", gameTimeHour)
-            local txtGameTimeMinute = string.format("%02d", gameTimeMinute)
-            timeClockText.text = txtGameTimeHour .. ":" .. txtGameTimeMinute
+            timeTextAccumulator = timeTextAccumulator + dt
+            if timeTextAccumulator >= updateInterval then                                                           -- Check if our target update time has been reached
+                timeTextAccumulator = 0                                                                             -- Reset the interval
+                local secondsElapsedInDay = world_:getWorldTime() % world_:getDayLength()                           --How many real world seconds have elapsed in this day
+                local gameHourInSeconds = world_:getDayLength()/24                                                  --Calculate this to future-proof for server owners changing it
+                local gameMinuteInSeconds = world_:getDayLength()/1440                                              --Calculate how long a game minute is in real world seconds
+                local gameTimeHour = math.floor(secondsElapsedInDay / gameHourInSeconds)                            --The hour to display
+                local gameTimeMinute = math.floor((secondsElapsedInDay % gameHourInSeconds)/gameMinuteInSeconds)    --The minute to display
+                --Format the clock digits to add a leading 0 and set the text field
+                local txtGameTimeHour = string.format("%02d", gameTimeHour)
+                local txtGameTimeMinute = string.format("%02d", gameTimeMinute)
+                timeClockText.text = txtGameTimeHour .. ":" .. txtGameTimeMinute
+            end
         end
 
         --UTC label for the clock
         timeClockUTCLabel = TextView.new(myPanelView)
-        timeClockUTCLabel.font = Font(uiCommon.fontName, 13)
+        timeClockUTCLabel.font = Font(uiCommon.fontName, 11)
         timeClockUTCLabel.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         timeClockUTCLabel.relativeView = myPanelView
         timeClockUTCLabel.baseOffset = timeClockUTCLabelBaseOffset
-        timeClockUTCLabel.text = "UTC"
+        timeClockUTCLabel.text = timeUTCLabel
     end
 end
 
