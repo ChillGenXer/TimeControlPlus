@@ -1,6 +1,6 @@
 --- TimeControlsPlus: timeControls.lua
 --- @author ChillGenXer
---Mod for displaying a calendar and time in Sapiens.
+--- Mod for displaying a calendar and time in Sapiens.
 
 --Imports
 local mjm = mjrequire "common/mjm"
@@ -16,7 +16,6 @@ local dot = mjm.dot
 local mat3Identity = mjm.mat3Identity
 
 local currentSeason = nil
-local timeUnitLabel = "WT"
 
 --Default mod load order
 local mod = {
@@ -89,6 +88,7 @@ function mod:onload(timeControls)
         local dayTextView = nil                                 --The day label
         local timeClockText = nil                               --The digital clock
         local timeClockUTCLabel = nil                           --UTC label. Seperate so it doesn't bounce around when the clock is updating
+        local timeUnitLabel = "WT"                              --The time units to display on the screen
 
         --Dimensions of the UI objects
         local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
@@ -101,7 +101,7 @@ function mod:onload(timeControls)
         local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
         local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
         local timeClockTextBaseOffset = vec3(13,20,0)
-        local timeClockUTCLabelBaseOffset = vec3(45,20,0)
+        local timeClockUTCLabelBaseOffset = vec3(47,20,0)
         local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
         local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)     --offset for the seasonal tree icon
         local toolTipOffset = vec3(0,-10,0)                     --offset for tooltips

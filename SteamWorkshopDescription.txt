@@ -23,16 +23,18 @@ The season indicated by the icon is based only on the day of the year it is, so 
 [list]
 [*] v0.1.0 - Initial Release
 [*] v0.3.0 - Fixed (hopefully) a flickering issue some users are experiencing with the tree.  Added hover text over the clock to show the season.
+[*] v0.3.5 - REALLY fixed the flickering tree issue as well as the skew with extreme FOV values.  Changed the time units to WT (World Time). 
 [/list]
 
 [h2]Future Enhancements[/h2]
 [list]
 [*] Tooltips on the items with additional statistics
+[*] Notification of a new year starting
 [/list]
 
 [h2]Known Issues[/h2]
 [list]
-[*] Extreme FOV values will skew the apple tree icon.  I don't plan on doing anything about that at the moment.
+[*] None
 [/list]
 
 [h2]Support[/h2]

@@ -30,11 +30,12 @@ The season indicated by the icon is based only on the day of the year it is, so 
 
 ## Known Issues
 
-* Extreme FOV values will skew the apple tree icon.  I don't plan on doing anything about that at the moment.
+* None
 
 ## Future Enhancements
 
 * Tooltips on the items with additional statistics
+* New year notification
 
 ## Support
 
