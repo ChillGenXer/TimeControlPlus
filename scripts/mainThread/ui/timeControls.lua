@@ -9,13 +9,17 @@ local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 local material = mjrequire "common/material"
 local localPlayer = mjrequire "mainThread/localPlayer"
-
+local audio = mjrequire "mainThread/audio"
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
 local dot = mjm.dot
 local mat3Identity = mjm.mat3Identity
 
 local currentSeason = nil
+local currentYear = nil
+local seasonChangeSound = "audio/sounds/events/percussive1_unused.wav"
+local yearChangeSound = "audio/sounds/events/uncertain1.mp3"
+
 
 --Default mod load order
 local mod = {
@@ -152,12 +156,14 @@ function mod:onload(timeControls)
         seasonTreeImage.baseOffset = seasonTreeBaseOffset
         seasonTreeImage.relativeView = seasonCircleBack
         seasonTreeImage.alpha = 1.0
-        
         seasonTreeImage.update = function(dt)
             --Update the image based on what season it is.
             local season = getSeason()
             if currentSeason ~= season.seasonText then
-                --mj:log("Registering New Season")
+                if currentSeason ~= nil then
+                    --The season is changing, play a sound
+                    audio:playUISound(seasonChangeSound)
+                end
                 currentSeason = season.seasonText
                 seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
             end
@@ -170,9 +176,18 @@ function mod:onload(timeControls)
         yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
         yearTextView.relativeView = myPanelView
         yearTextView.baseOffset = yearBaseOffset
-        --Is this the best way to keep these updated in near-real time?  I really am not even sure how this works and what "dt" is... Server ticks?
         yearTextView.update = function(dt)
-            yearTextView.text = "Year " .. tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
+            local actualYear = tostring(math.floor(math.floor(world_:getWorldTime()/world_:getDayLength())/8) + 1)
+            if currentYear ~= actualYear then
+                if currentYear ~= nil then
+                    --The year is changing, play a sound
+                    audio:playUISound(yearChangeSound)
+                    --TODO: Get notification working
+                    --serverGOM:sendNotificationForObject(objectID, notificationTypeIndex, userData)
+                end
+                currentYear = actualYear
+                yearTextView.text = "Year " .. currentYear
+            end
         end
 
         --The day of year text, and the update function to keep it refreshed with the correct value
