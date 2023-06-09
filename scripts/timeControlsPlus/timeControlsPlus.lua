@@ -1,3 +1,14 @@
+--- TimeControlsPlus: timeControlsPlus.lua
+--- @author ChillGenXer
+--- Mod for displaying a calendar and time in Sapiens.
+
+--Create the module object so it can be returned
+local timeControlsPlus = {}
+
+--mj:log(timeControlsPlus)
+--mj:log(gameUI_)
+--mj:log(world_)
+
 --Imports
 local mjm = mjrequire "common/mjm"
 local model = mjrequire "common/model"
@@ -11,72 +22,74 @@ local vec3 = mjm.vec3
 local dot = mjm.dot
 local mat3Identity = mjm.mat3Identity
 
+local gameUI = nil
+local world = nil
+
 local currentSeason = nil
 local currentYear = nil
 local seasonChangeSound = "audio/sounds/events/percussive1_unused.wav"
 local yearChangeSound = "audio/sounds/events/uncertain1.mp3"
 
---Create the module object so it can be returned
-local timeControlsPlus = {}
+---Returns a season object with the appropriate tree model and season name.
+local function getSeason()
+    
+    --Object to hold the attributes
+    local seasonObject = {
+        treeModel = nil,
+        seasonText = nil
+    }
 
-function timeControlsPlus:init(gameUI, world)
-    mj:log("Got in")
+    --Get the players position to determine if they are in the southern hemisphere
+    local playerPosition = localPlayer:getPos()
+    local isSouthHemisphere = dot(playerPosition, vec3(0.0,1.0,0.0)) < 0.0
 
-    ---Calculate which season it is.
-    local function getSeason()
-        
-        --Object to hold the attributes
-        local seasonObject = {
-            treeModel = nil,
-            seasonText = nil
+    --Calculate the seasonal fraction. 0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
+    local seasonFraction = math.fmod(world.yearSpeed * world:getWorldTime(), 1.0)
+    
+    --Get the index & HemisphereOffset we need for the lookup table
+    local index = math.floor(seasonFraction * 4) % 4 + 1
+    local hemisphereOffset = isSouthHemisphere and 2 or 1
+
+    --Lookup table for getting the right tree model and text.  The pair of values represent the northern hemisphere and
+    --southern hemisphere naming.
+    local seasonLookupTable = {
+        {
+            treeModel = { "appleTreeSpring", "appleTreeAutumn" },
+            seasonText = { "Spring", "Autumn" }
+        },
+        {
+            treeModel = { "appleTree", "appleTreeWinter" },
+            seasonText = { "Summer", "Winter" }
+        },
+        {
+            treeModel = { "appleTreeAutumn", "appleTreeSpring" },
+            seasonText = { "Autumn", "Spring" }
+        },
+        {
+            treeModel = { "appleTreeWinter", "appleTree" },
+            seasonText = { "Winter", "Summer" }
         }
+    }
 
-        --Get the players position to determine if they are in the southern hemisphere
-        local playerPosition = localPlayer:getPos()
-        local isSouthHemisphere = dot(playerPosition, vec3(0.0,1.0,0.0)) < 0.0
+    --Set the season object
+    seasonObject.treeModel = seasonLookupTable[index].treeModel[hemisphereOffset]
+    seasonObject.seasonText = seasonLookupTable[index].seasonText[hemisphereOffset]
 
-        --Calculate the seasonal fraction. 0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
-        local seasonFraction = math.fmod(world.yearSpeed * world:getWorldTime(), 1.0)
-        
-        --Lookup table for getting the right tree model and text.  The pair of values represent the northern hemisphere and
-        --southern hemisphere naming.
-        local seasonLookupTable = {
-            {
-                treeModel = { "appleTreeSpring", "appleTreeAutumn" },
-                seasonText = { "Spring", "Autumn" }
-            },
-            {
-                treeModel = { "appleTree", "appleTreeWinter" },
-                seasonText = { "Summer", "Winter" }
-            },
-            {
-                treeModel = { "appleTreeAutumn", "appleTreeSpring" },
-                seasonText = { "Autumn", "Spring" }
-            },
-            {
-                treeModel = { "appleTreeWinter", "appleTree" },
-                seasonText = { "Winter", "Summer" }
-            }
-        }
-        
-        --Get the index & HemisphereOffset we need for the lookup table
-        local index = math.floor(seasonFraction * 4) % 4 + 1
-        local hemisphereOffset = isSouthHemisphere and 2 or 1
-        
-        --Set the season object
-        seasonObject.treeModel = seasonLookupTable[index].treeModel[hemisphereOffset]
-        seasonObject.seasonText = seasonLookupTable[index].seasonText[hemisphereOffset]
+    return seasonObject
+end
 
-        return seasonObject
-    end
+--Main function ran from the shadow file
+function timeControlsPlus:init(gameUI_, world_)
+    gameUI = gameUI_
+    world = world_
 
     --Custom UI components for displaying calendar information.
-
-    --UI Components
     local myMainView = nil                                  --Invisible anchor to the GameUI
-    local seasonCircleBack = nil                            --Circle the tree icon sits inside of
     local myPanelView = nil                                 --Panel where year, day and time are displayed
+    local seasonCircleBack = nil                            --Circle the tree icon sits inside of
     local seasonTreeImage = nil                             --The tree season icon
+
+    --Information labels
     local yearTextView = nil                                --The year label
     local dayTextView = nil                                 --The day label
     local timeClockText = nil                               --The digital clock
@@ -89,6 +102,7 @@ function timeControlsPlus:init(gameUI, world)
     local seasonTreeImageSize = 60.0                        --Size of the model
 
     --Positioning things - vec3(x, y, z)
+    --TODO I should figure out how to offset from the timeControl itself
     local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
     local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
     local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
@@ -96,7 +110,7 @@ function timeControlsPlus:init(gameUI, world)
     local timeClockTextBaseOffset = vec3(13,20,0)
     local timeClockUTCLabelBaseOffset = vec3(47,20,0)
     local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
-    local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)     --offset for the seasonal tree icon
+    local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)       --offset for the seasonal tree icon
     local toolTipOffset = vec3(0,-10,0)                     --offset for tooltips
 
     --3D Scaling
@@ -136,7 +150,7 @@ function timeControlsPlus:init(gameUI, world)
     myPanelView.alpha = 0.9     --This affects transparency.
     uiToolTip:add(myPanelView, ViewPosition(MJPositionCenter, MJPositionBelow), "", nil, toolTipOffset, nil, myPanelView)
     myPanelView.update = function(dt)
-        local season = getSeason()
+        local season = getSeason(world)
         uiToolTip:updateText(myPanelView, season.seasonText, nil, false)
     end
     --A ModelView to show the tree to represent the season
@@ -147,7 +161,7 @@ function timeControlsPlus:init(gameUI, world)
     seasonTreeImage.alpha = 1.0
     seasonTreeImage.update = function(dt)
         --Update the image based on what season it is.
-        local season = getSeason()
+        local season = getSeason(world)
         if currentSeason ~= season.seasonText then
             if currentSeason ~= nil then
                 --The season is changing, play a sound
@@ -215,6 +229,10 @@ function timeControlsPlus:init(gameUI, world)
     timeClockUTCLabel.relativeView = myPanelView
     timeClockUTCLabel.baseOffset = timeClockUTCLabelBaseOffset
     timeClockUTCLabel.text = timeUnitLabel
+
+    --TODO try to get a notification going
+    --serverGOM:sendNotificationForObject(objectOrVertID, notification.types.updateUI.index)
+
 end
 
 --Return the module object

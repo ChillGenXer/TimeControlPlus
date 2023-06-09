@@ -7,20 +7,18 @@ local mod = {
     loadOrder = 1
 }
 
+--Import our custom code
+local timeControlsPlus = mjrequire "timeControlsPlus/timeControlsPlus"
+
 function mod:onload(timeControls)
-    local timeControlsPlus = mjrequire "timeControlsPlus/timeControlsPlus"
-    
+    --create a local copy of the init function of timeControls    
     local super_timeControls = timeControls.init
 
+    --Redefine the function to also run the custom code
     timeControls.init = function(timeControls_, gameUI_, world_)
-        --Run the vanilla control first before our code.  Our changes will be additive to the existing UI.
-	    mj:log("Run the super")
+        --Run the game timeControl.init
         super_timeControls(timeControls_, gameUI_, world_)
-        
-        --Initialize the TimeControlPlus addition
-        mj:log(timeControlsPlus)
-        mj:log(gameUI_)
-        mj:log(world_)
+        --Run the TimeControlPlus addition
         timeControlsPlus:init(gameUI_, world_)
     end
 end
