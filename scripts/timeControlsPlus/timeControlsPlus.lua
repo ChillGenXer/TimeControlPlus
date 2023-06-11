@@ -5,18 +5,18 @@
 --Create the module object so it can be returned
 local timeControlsPlus = {}
 
---mj:log(timeControlsPlus)
---mj:log(gameUI_)
---mj:log(world_)
-
 --Imports
 local mjm = mjrequire "common/mjm"
 local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
+
 local material = mjrequire "common/material"
 local localPlayer = mjrequire "mainThread/localPlayer"
-local audio = mjrequire "mainThread/audio"
+--local audio = mjrequire "mainThread/audio"
+--local seasonChangeSound = "audio/sounds/events/percussive1_unused.wav"
+--local yearChangeSound = "audio/sounds/events/uncertain1.mp3"
+
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
 local dot = mjm.dot
@@ -24,11 +24,12 @@ local mat3Identity = mjm.mat3Identity
 
 local gameUI = nil
 local world = nil
-
 local currentSeason = nil
 local currentYear = nil
-local seasonChangeSound = "audio/sounds/events/percussive1_unused.wav"
-local yearChangeSound = "audio/sounds/events/uncertain1.mp3"
+
+local notificationsUI = mjrequire "mainThread/ui/notificationsUI"
+local notification = mjrequire "common/notification"
+local gameObject = mjrequire "common/gameObject"
 
 ---Returns a season object with the appropriate tree model and season name.
 local function getSeason()
@@ -78,8 +79,17 @@ local function getSeason()
     return seasonObject
 end
 
+local function sendNotification(notificationTypeIndex)
+
+    notificationsUI:displayObjectNotification({
+        typeIndex = notificationTypeIndex,
+		objectInfo = {objectTypeIndex=gameObject.types.appleTree.index},
+	})
+end
+
 --Main function ran from the shadow file
 function timeControlsPlus:init(gameUI_, world_)
+
     gameUI = gameUI_
     world = world_
 
@@ -165,7 +175,7 @@ function timeControlsPlus:init(gameUI_, world_)
         if currentSeason ~= season.seasonText then
             if currentSeason ~= nil then
                 --The season is changing, play a sound
-                audio:playUISound(seasonChangeSound)
+                sendNotification(notification.types.summerStarting.index)
             end
             currentSeason = season.seasonText
             seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
@@ -184,9 +194,7 @@ function timeControlsPlus:init(gameUI_, world_)
         if currentYear ~= actualYear then
             if currentYear ~= nil then
                 --The year is changing, play a sound
-                audio:playUISound(yearChangeSound)
-                --TODO: Get notification working
-                --serverGOM:sendNotificationForObject(objectID, notificationTypeIndex, userData)
+                sendNotification(notification.types.newYear.index)
             end
             currentYear = actualYear
             yearTextView.text = "Year " .. currentYear
@@ -229,10 +237,6 @@ function timeControlsPlus:init(gameUI_, world_)
     timeClockUTCLabel.relativeView = myPanelView
     timeClockUTCLabel.baseOffset = timeClockUTCLabelBaseOffset
     timeClockUTCLabel.text = timeUnitLabel
-
-    --TODO try to get a notification going
-    --serverGOM:sendNotificationForObject(objectOrVertID, notification.types.updateUI.index)
-
 end
 
 --Return the module object
