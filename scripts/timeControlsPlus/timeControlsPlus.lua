@@ -13,9 +13,7 @@ local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 
 local material = mjrequire "common/material"
 local localPlayer = mjrequire "mainThread/localPlayer"
---local audio = mjrequire "mainThread/audio"
---local seasonChangeSound = "audio/sounds/events/percussive1_unused.wav"
---local yearChangeSound = "audio/sounds/events/uncertain1.mp3"
+
 
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
@@ -56,42 +54,56 @@ local function getSeason()
     local seasonLookupTable = {
         {
             treeModel = { "appleTreeSpring", "appleTreeAutumn" },
-            seasonText = { "Spring", "Autumn" }
+            seasonText = { "Spring", "Autumn" },
+            seasonNotificationType = {notification.types.newYear.index, notification.types.newYear.index},
+            seasonNotificationObject = {{objectTypeIndex=gameObject.types.appleTree.index}, {objectTypeIndex=gameObject.types.appleTree.index}}
         },
         {
             treeModel = { "appleTree", "appleTreeWinter" },
-            seasonText = { "Summer", "Winter" }
+            seasonText = { "Summer", "Winter" },
+            seasonNotificationType = {notification.types.summerStarting.index, notification.types.winterStarting.index},
+            seasonNotificationObject = {{objectTypeIndex=gameObject.types.appleTree.index}, {objectTypeIndex=gameObject.types.appleTree.index}}
         },
         {
             treeModel = { "appleTreeAutumn", "appleTreeSpring" },
-            seasonText = { "Autumn", "Spring" }
+            seasonText = { "Autumn", "Spring" },
+            seasonNotificationType = {notification.types.autumnStarting.index, notification.types.springStarting.index},
+            seasonNotificationObject = {{objectTypeIndex=gameObject.types.appleTree.index}, {objectTypeIndex=gameObject.types.appleTree.index}}
         },
         {
             treeModel = { "appleTreeWinter", "appleTree" },
-            seasonText = { "Winter", "Summer" }
+            seasonText = { "Winter", "Summer" },
+            seasonNotificationType = {notification.types.winterStarting.index, notification.types.summerStarting.index},
+            seasonNotificationObject = {{objectTypeIndex=gameObject.types.appleTree.index}, {objectTypeIndex=gameObject.types.appleTree.index}}
         }
     }
 
     --Set the season object
     seasonObject.treeModel = seasonLookupTable[index].treeModel[hemisphereOffset]
     seasonObject.seasonText = seasonLookupTable[index].seasonText[hemisphereOffset]
+    seasonObject.notificationType = seasonLookupTable[index].seasonNotificationType[hemisphereOffset]
+    seasonObject.notificationObject = seasonLookupTable[index].seasonNotificationObject[hemisphereOffset]
 
     return seasonObject
 end
 
-local function sendNotification(notificationTypeIndex)
+---Send a UI notification when the seasons change.
+local function sendNotification(seasonNotifyInfo)
 
     notificationsUI:displayObjectNotification({
-        typeIndex = notificationTypeIndex,
-		objectInfo = {objectTypeIndex=gameObject.types.appleTree.index},
+        typeIndex = seasonNotifyInfo.notificationType,
+		objectInfo = seasonNotifyInfo.notificationObject,
 	})
 end
 
 --Main function ran from the shadow file
 function timeControlsPlus:init(gameUI_, world_)
-
+    --Grab our game context objects and store them locally.
     gameUI = gameUI_
     world = world_
+
+    --mj:log(gameUI)
+    --mj:log(world)
 
     --Custom UI components for displaying calendar information.
     local myMainView = nil                                  --Invisible anchor to the GameUI
@@ -175,7 +187,7 @@ function timeControlsPlus:init(gameUI_, world_)
         if currentSeason ~= season.seasonText then
             if currentSeason ~= nil then
                 --The season is changing, play a sound
-                sendNotification(notification.types.summerStarting.index)
+                sendNotification(season)
             end
             currentSeason = season.seasonText
             seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
@@ -185,25 +197,18 @@ function timeControlsPlus:init(gameUI_, world_)
 
     --The year text, and the update function to keep it refreshed with the correct value
     yearTextView = TextView.new(myPanelView)
-    yearTextView.font = Font(uiCommon.fontName, 15)
+    yearTextView.font = Font(uiCommon.fontName, 16)
     yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
     yearTextView.relativeView = myPanelView
     yearTextView.baseOffset = yearBaseOffset
     yearTextView.update = function(dt)
-        local actualYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/8) + 1)
-        if currentYear ~= actualYear then
-            if currentYear ~= nil then
-                --The year is changing, play a sound
-                sendNotification(notification.types.newYear.index)
-            end
-            currentYear = actualYear
-            yearTextView.text = "Year " .. currentYear
-        end
+        currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/8) + 1)
+        yearTextView.text = "Year " .. currentYear
     end
 
     --The day of year text, and the update function to keep it refreshed with the correct value
     dayTextView = TextView.new(myPanelView)
-    dayTextView.font = Font(uiCommon.fontName, 15)
+    dayTextView.font = Font(uiCommon.fontName, 16)
     dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
     dayTextView.relativeView = myPanelView
     dayTextView.baseOffset = dayBaseOffset
@@ -214,7 +219,7 @@ function timeControlsPlus:init(gameUI_, world_)
 
     --Digital Clock
     timeClockText = TextView.new(myPanelView)
-    timeClockText.font = Font(uiCommon.fontName, 13)
+    timeClockText.font = Font(uiCommon.fontName, 14)
     timeClockText.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
     timeClockText.relativeView = myPanelView
     timeClockText.baseOffset = timeClockTextBaseOffset
