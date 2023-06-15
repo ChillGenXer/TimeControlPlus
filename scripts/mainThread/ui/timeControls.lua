@@ -4,7 +4,7 @@
 
 --Default mod load order
 local mod = {
-    loadOrder = 3
+    loadOrder = 1
 }
 
 --Import our custom code
