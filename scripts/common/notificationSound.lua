@@ -5,7 +5,7 @@ local mod = {
 }
 
 function mod:onload(notificationSound)
-    mj:log("notificationSound Override")
+    --Currently using two unused sound files in the base game.
     typeMaps:insert("notificationSound", notificationSound.types,
         {
             key = "springStarting",

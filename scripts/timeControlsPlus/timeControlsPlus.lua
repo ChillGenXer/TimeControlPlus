@@ -35,7 +35,8 @@ local function getSeason()
     --Object to hold the attributes
     local seasonObject = {
         treeModel = nil,
-        seasonText = nil
+        seasonText = nil,
+        currentYear = nil
     }
 
     --Get the players position to determine if they are in the southern hemisphere
@@ -83,6 +84,7 @@ local function getSeason()
     seasonObject.seasonText = seasonLookupTable[index].seasonText[hemisphereOffset]
     seasonObject.notificationType = seasonLookupTable[index].seasonNotificationType[hemisphereOffset]
     seasonObject.notificationObject = seasonLookupTable[index].seasonNotificationObject[hemisphereOffset]
+    seasonObject.currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/8) + 1)
 
     return seasonObject
 end
@@ -93,6 +95,7 @@ local function sendNotification(seasonNotifyInfo)
     notificationsUI:displayObjectNotification({
         typeIndex = seasonNotifyInfo.notificationType,
 		objectInfo = seasonNotifyInfo.notificationObject,
+        currentYear = seasonNotifyInfo.currentYear,
 	})
 end
 
@@ -124,7 +127,7 @@ function timeControlsPlus:init(gameUI_, world_)
     local seasonTreeImageSize = 60.0                        --Size of the model
 
     --Positioning things - vec3(x, y, z)
-    --TODO I should figure out how to offset from the timeControl itself
+    --TODO I should figure out how to offset from the timeControl itself.  Actually I should just shadow the whole thing, it's not big.
     local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
     local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
     local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.

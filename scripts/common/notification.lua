@@ -6,8 +6,9 @@ local mod = {
 }
 
 function mod:onload(notification)
-    mj:log("notification shadow start")
- 
+--[[ TypeMaps for the notifications.  The new year notification is used instead of the spring notification in the northern hemisphere,
+and the autumn one in the southern hemisphere.  They are included in the pairs regardless for consistency and possible future use. ]]
+    
     typeMaps:insert("notification", notification.types, {
         key = "springStarting",
         titleFunction = function(notificationInfo)
@@ -43,13 +44,10 @@ function mod:onload(notification)
     typeMaps:insert("notification", notification.types, {
         key = "newYear",
         titleFunction = function(notificationInfo)
-            return "A New Year has started."
-            --return "Year " .. notificationInfo.year .. "has started."
+            return "Year " .. notificationInfo.currentYear .. " has begun."
         end,
         soundTypeIndex = notificationSound.types.newYear.index,
     })
-
-    mj:log("notification shadow end")
 
 end
 
