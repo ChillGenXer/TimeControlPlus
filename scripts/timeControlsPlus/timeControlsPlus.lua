@@ -10,10 +10,8 @@ local mjm = mjrequire "common/mjm"
 local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
-
 local material = mjrequire "common/material"
 local localPlayer = mjrequire "mainThread/localPlayer"
-
 
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
@@ -118,8 +116,13 @@ function timeControlsPlus:init(gameUI_, world_)
     local yearTextView = nil                                --The year label
     local dayTextView = nil                                 --The day label
     local timeClockText = nil                               --The digital clock
-    local timeClockUTCLabel = nil                           --UTC label. Seperate so it doesn't bounce around when the clock is updating
-    local timeUnitLabel = "WT"                              --The time units to display on the screen
+    local timeClockUnitLabel = nil                          --Time unit label. Seperate so it doesn't bounce around when the clock is updating
+
+    --Time Variables
+    local timeUnitLabel = "WT"                                              --The time units to display on the screen
+    local daysInYear = world:getYearLength() / world:getDayLength()         --Calculate the number of days in the year.
+    local gameHourInSeconds = world:getDayLength()/24                       --Calculate this to future-proof for server owners changing it
+    local gameMinuteInSeconds = world:getDayLength()/1440                   --Calculate how long a game minute is in real world seconds
 
     --Dimensions of the UI objects
     local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
@@ -133,7 +136,7 @@ function timeControlsPlus:init(gameUI_, world_)
     local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
     local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
     local timeClockTextBaseOffset = vec3(13,20,0)
-    local timeClockUTCLabelBaseOffset = vec3(47,20,0)
+    local timeClockUnitLabelBaseOffset = vec3(47,20,0)
     local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
     local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)       --offset for the seasonal tree icon
     local toolTipOffset = vec3(0,-10,0)                     --offset for tooltips
@@ -195,7 +198,6 @@ function timeControlsPlus:init(gameUI_, world_)
             currentSeason = season.seasonText
             seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
         end
-        
     end
 
     --The year text, and the update function to keep it refreshed with the correct value
@@ -205,7 +207,7 @@ function timeControlsPlus:init(gameUI_, world_)
     yearTextView.relativeView = myPanelView
     yearTextView.baseOffset = yearBaseOffset
     yearTextView.update = function(dt)
-        currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/8) + 1)
+        currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/daysInYear) + 1)
         yearTextView.text = "Year " .. currentYear
     end
 
@@ -217,7 +219,7 @@ function timeControlsPlus:init(gameUI_, world_)
     dayTextView.baseOffset = dayBaseOffset
     dayTextView.update = function(dt)
         --Calculate the day of the year.
-        dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % 8 + 1)
+        dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % daysInYear + 1)
     end
 
     --Digital Clock
@@ -227,9 +229,7 @@ function timeControlsPlus:init(gameUI_, world_)
     timeClockText.relativeView = myPanelView
     timeClockText.baseOffset = timeClockTextBaseOffset
     timeClockText.update = function(dt)
-        local secondsElapsedInDay = world:getWorldTime() % world:getDayLength()       --How many real world seconds have elapsed in this day
-        local gameHourInSeconds = world:getDayLength()/24                              --Calculate this to future-proof for server owners changing it
-        local gameMinuteInSeconds = world:getDayLength()/1440                          --Calculate how long a game minute is in real world seconds
+        local secondsElapsedInDay = world:getWorldTime() % world:getDayLength() --How many real world seconds have elapsed in this day
         local gameTimeHour = math.floor(secondsElapsedInDay / gameHourInSeconds)                            --The hour to display
         local gameTimeMinute = math.floor((secondsElapsedInDay % gameHourInSeconds)/gameMinuteInSeconds)    --The minute to display
         --Format the clock digits to add a leading 0 and set the text field
@@ -238,13 +238,13 @@ function timeControlsPlus:init(gameUI_, world_)
         timeClockText.text = txtGameTimeHour .. ":" .. txtGameTimeMinute
     end
 
-    --UTC label for the clock
-    timeClockUTCLabel = TextView.new(myPanelView)
-    timeClockUTCLabel.font = Font(uiCommon.fontName, 11)
-    timeClockUTCLabel.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    timeClockUTCLabel.relativeView = myPanelView
-    timeClockUTCLabel.baseOffset = timeClockUTCLabelBaseOffset
-    timeClockUTCLabel.text = timeUnitLabel
+    --Time Unit label for the clock
+    timeClockUnitLabel = TextView.new(myPanelView)
+    timeClockUnitLabel.font = Font(uiCommon.fontName, 11)
+    timeClockUnitLabel.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+    timeClockUnitLabel.relativeView = myPanelView
+    timeClockUnitLabel.baseOffset = timeClockUnitLabelBaseOffset
+    timeClockUnitLabel.text = timeUnitLabel
 end
 
 --Return the module object
