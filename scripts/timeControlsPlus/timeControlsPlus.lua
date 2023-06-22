@@ -27,6 +27,11 @@ local notificationsUI = mjrequire "mainThread/ui/notificationsUI"
 local notification = mjrequire "common/notification"
 local gameObject = mjrequire "common/gameObject"
 
+---Rounds the given number
+local function round(n)
+    return n >= 0 and math.floor(n + 0.5) or math.ceil(n - 0.5)
+end
+
 ---Returns a season object with the appropriate tree model and season name.
 local function getSeason()
     
@@ -219,7 +224,10 @@ function timeControlsPlus:init(gameUI_, world_)
     dayTextView.baseOffset = dayBaseOffset
     dayTextView.update = function(dt)
         --Calculate the day of the year.
-        dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % daysInYear + 1)
+        local elapsedDays = round(world:getWorldTime()/world:getDayLength())
+        local currentDay = elapsedDays % daysInYear + 1
+        dayTextView.text = "Day " .. tostring(currentDay)
+        --dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % daysInYear + 1)
     end
 
     --Digital Clock
