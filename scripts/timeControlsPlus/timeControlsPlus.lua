@@ -94,12 +94,19 @@ end
 
 ---Send a UI notification when the seasons change.
 local function sendNotification(seasonNotifyInfo)
-
+--[[
+    notificationsUI:displayNotification({
+        typeIndex = seasonNotifyInfo.notificationType,
+		objectInfo = seasonNotifyInfo.notificationObject,
+        currentYear = seasonNotifyInfo.currentYear,
+	})
+]] 
     notificationsUI:displayObjectNotification({
         typeIndex = seasonNotifyInfo.notificationType,
 		objectInfo = seasonNotifyInfo.notificationObject,
         currentYear = seasonNotifyInfo.currentYear,
 	})
+
 end
 
 --Main function ran from the shadow file
@@ -186,7 +193,7 @@ function timeControlsPlus:init(gameUI_, world_)
         local season = getSeason(world)
         uiToolTip:updateText(myPanelView, season.seasonText, nil, false)
     end
-    --A ModelView to show the tree to represent the season
+    --A GameObjectlView to show the tree to represent the season
     seasonTreeImage = GameObjectView.new(myPanelView, vec2(128, 128)) --this second argument is the texture image size in pixels that the tree is rendered into
     seasonTreeImage.size = vec2(seasonTreeImageSize, seasonTreeImageSize)
     seasonTreeImage.baseOffset = seasonTreeBaseOffset
@@ -198,7 +205,7 @@ function timeControlsPlus:init(gameUI_, world_)
         if currentSeason ~= season.seasonText then
             if currentSeason ~= nil then
                 --The season is changing, play a sound
-                sendNotification(season)
+                --sendNotification(season)
             end
             currentSeason = season.seasonText
             seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))

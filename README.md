@@ -4,7 +4,7 @@ A mod for the fantastic colony sim [Sapiens](https://store.steampowered.com/app/
 
 ## Overview
 
-First a brief explanation of how time progression works in Sapiens.  Each game year is divided into 4 seasons, with each season having a duration of 2 game days, meaning a game year is 8 game days.  The new control provides the current Year, the current day of the year (day 1-8), world time, as well as a graphical representation of the season. 
+First a brief explanation of how time progression works in Sapiens.  The default game year is divided into 4 seasons, with each season having a duration of 2 game days, meaning a game year is 8 game days.  The new control provides the current Year, the current day of the year (day 1-8), world time, as well as a graphical representation of the season. 
 
 When you begin a game, you will not necessarily start on day 1 as there are many factors that are considered: where on the globe you start, time passed once you have selected your world, time of day at the location you start a new world, and others.  The exact spot on the original sundial that a game day changes will be based on the clock marker position when you first started playing a newly generated world.  However the day will change at 00:00 UTC on the mod's digital clock, it just won't line up on the sundial to midnight.
 
