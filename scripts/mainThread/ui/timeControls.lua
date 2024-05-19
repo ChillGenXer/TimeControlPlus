@@ -1,25 +1,21 @@
 --- TimeControlsPlus: timeControls.lua
 --- @author ChillGenXer
---- Mod for displaying a calendar and time in Sapiens.
+--- This is the entry file for the mod.  When timeControls is attempted to be loaded, this code will intercept
+--- and replace with the modded code. 
 
 --Default mod load order
 local mod = {
     loadOrder = 1
 }
 
---Import our custom code
+-- Import your custom timeControlsPlus module
 local timeControlsPlus = mjrequire "timeControlsPlus/timeControlsPlus"
 
+-- Replace the contents of the vanilla timeControls file with the TimeControlsPlus code.
 function mod:onload(timeControls)
-    --create a local copy of the init function of timeControls    
-    local super_timeControls = timeControls.init
-
-    --Redefine the function to also run the custom code
-    timeControls.init = function(timeControls_, gameUI_, world_)
-        --Run the game timeControl.init
-        super_timeControls(timeControls_, gameUI_, world_)
-        --Run the TimeControlPlus addition
-        timeControlsPlus:init(gameUI_, world_)
+    -- Replace the timeControls table with timeControlsPlus
+    for k, v in pairs(timeControlsPlus) do
+        timeControls[k] = v
     end
 end
 
