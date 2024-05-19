@@ -3,48 +3,58 @@ local vec3 = mjm.vec3
 local vec2 = mjm.vec2
 local mat3Rotate = mjm.mat3Rotate
 local mat3Identity = mjm.mat3Identity
-
 local locale = mjrequire "common/locale"
-
 local model = mjrequire "common/model"
 local weather = mjrequire "common/weather"
 local gameConstants = mjrequire "common/gameConstants"
 local material = mjrequire "common/material"
-
---local keyMapping = mjrequire "mainThread/keyMapping"
 local audio = mjrequire "mainThread/audio"
-
 local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
-
 local timeControls = {}
-
 local mainView = nil
-
 local buttonsBySpeedIndex = {}
 local currentServerSpeedIndex = nil
 local currentLocalSpeedIndex = nil
-
 local temperatureTextView = nil
 local panelView = nil
-
 local currentlyUltraSpeed = false
-
 local toolTipOffset = vec3(0,-10,0)
+local connectionAlertIcon = nil -- Declare a local variable to store the connection alert icon, initially nil (not created).
 
+--TimeControlPlus Imports
+local localPlayer = mjrequire "mainThread/localPlayer"
+local dot = mjm.dot
 
+--TimeControlPlus Functions
+
+---Rounds the given number
+local function round(n)
+    return n >= 0 and math.floor(n + 0.5) or math.ceil(n - 0.5)
+end
+
+-- ******************** VANILLA FUNCTIONS ********************
+
+-- Define a local function to handle changes in server speed multipliers.
 local function serverSpeedMultiplierChanged(speedMultiplier, speedMultiplierIndex)
+    -- Commented out logging statement that could be used for debugging
+    -- mj:log("speedMultiplierChanged:", speedMultiplier, " speedMultiplierIndex:", speedMultiplierIndex, " currentSpeedIndex:", currentSpeedIndex)
 
-    --mj:log("speedMultiplierChanged:", speedMultiplier, " speedMultiplierIndex:", speedMultiplierIndex, " currentSpeedIndex:", currentSpeedIndex)
-
+    -- Initialize a flag to check if the new speed is considered "Ultra Speed"
     local newIsUltraSpeed = false
+
+    -- If the new speed multiplier exceeds the defined fast speed threshold by 0.5, set newIsUltraSpeed to true
     if speedMultiplier > gameConstants.fastSpeed + 0.5 then
         newIsUltraSpeed = true
     end
 
+    -- Check if there is a change in the ultra speed status
     if newIsUltraSpeed ~= currentlyUltraSpeed then
+        -- Update the current ultra speed status
         currentlyUltraSpeed = newIsUltraSpeed
+
+        -- Play the appropriate sound effect based on whether the new speed is ultra or not
         if newIsUltraSpeed then
             audio:playUISound("audio/sounds/ui/speedup.wav")
         else
@@ -52,13 +62,18 @@ local function serverSpeedMultiplierChanged(speedMultiplier, speedMultiplierInde
         end
     end
 
+    -- Check if the current server speed index has changed
     if currentServerSpeedIndex ~= speedMultiplierIndex then
+        -- If the current server speed index is not nil, deselect the previously selected button
         if currentServerSpeedIndex ~= nil then
             local button = buttonsBySpeedIndex[currentServerSpeedIndex]
             uiStandardButton:setSelected(button, false)
         end
 
+        -- Update the current server speed index
         currentServerSpeedIndex = speedMultiplierIndex
+
+        -- Ensure that the button index does not exceed predefined bounds (hardcoded to 1 and 2 here)
         if not buttonsBySpeedIndex[currentServerSpeedIndex] then
             if currentServerSpeedIndex > 2 then
                 currentServerSpeedIndex = 2
@@ -67,23 +82,30 @@ local function serverSpeedMultiplierChanged(speedMultiplier, speedMultiplierInde
             end
         end
 
+        -- Select the button corresponding to the new server speed index
         local button = buttonsBySpeedIndex[currentServerSpeedIndex]
         uiStandardButton:setSelected(button, true)
-
     end
 end
 
-
+-- Define a function within the timeControls table to update the local speed preference based on a given index.
 function timeControls:updateLocalSpeedPreference(speedMultiplierIndex)
+    -- Check if the provided speedMultiplierIndex is different from the current local speed index.
     if speedMultiplierIndex ~= currentLocalSpeedIndex then
+        -- If the current local speed index is not nil, meaning there is a previously selected speed, proceed to deselect it.
         if currentLocalSpeedIndex ~= nil then
+            -- Retrieve the button corresponding to the current local speed index.
             local button = buttonsBySpeedIndex[currentLocalSpeedIndex]
+            -- Deselect the button by setting its secondary selected state to false.
             uiStandardButton:setSecondarySelected(button, false)
         end
 
+        -- Update the current local speed index to the new value.
         currentLocalSpeedIndex = speedMultiplierIndex
 
+        -- Retrieve the button corresponding to the new local speed index.
         local button = buttonsBySpeedIndex[currentLocalSpeedIndex]
+        -- Select this button by setting its secondary selected state to true.
         uiStandardButton:setSecondarySelected(button, true)
     end
 end
@@ -207,40 +229,53 @@ function timeControls:setHiddenForTribeSelection(newHidden)
     mainView.hidden = newHidden
 end
 
-
 function timeControls:playerTemperatureZoneChanged(newTemperatureZoneIndex)
     --temperatureTextView.text = weather.temperatureZones[newTemperatureZoneIndex].name
     temperatureTextView.text = "0.5 Baseline"
 end
 
-local connectionAlertIcon = nil
+-- Define a function within the timeControls table to handle changes in ping value.
 function timeControls:setPingValue(currentPingValue)
+    -- Check if the current ping value exceeds 10.0 milliseconds.
     if currentPingValue > 10.0 then
+        -- If the connection alert icon does not exist yet, create it.
         if not connectionAlertIcon then
-
+            -- Create a new model view for the alert icon within the main view.
             connectionAlertIcon = ModelView.new(mainView)
+            -- Define the size of the icon.
             local iconSize = 30
+            -- Set the position of the icon relative to another view (panelView).
             connectionAlertIcon.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionTop)
             connectionAlertIcon.relativeView = panelView
+            -- Set the base offset of the icon.
             connectionAlertIcon.baseOffset = vec3(10, 0.0, 0)
-            connectionAlertIcon.scale3D = vec3(iconSize,iconSize,iconSize) * 0.5
+            -- Set the scale of the icon.
+            connectionAlertIcon.scale3D = vec3(iconSize, iconSize, iconSize) * 0.5
+            -- Set the size of the icon.
             connectionAlertIcon.size = vec2(iconSize, iconSize)
 
+            -- Add a tooltip to the icon to provide more information on hover.
             uiToolTip:add(connectionAlertIcon, ViewPosition(MJPositionCenter, MJPositionBelow), locale:get("ui_slowConnection"), nil, toolTipOffset, nil, nil)
 
+            -- Initialize an animation timer.
             local animationTimer = 0.0
+            -- Define an update function for the icon to handle animations.
             connectionAlertIcon.update = function(dt)
                 local timerValue = animationTimer or 0.0
                 timerValue = timerValue + dt
                 animationTimer = timerValue
                 local animationAddition = (1.0 + math.sin(timerValue * 5.0)) * 0.5
-                --local iconSizeAnimated = iconSize * (1.0 + animationAddition * 0.1)
-                --connectionAlertIcon.scale3D = vec3(iconSizeAnimated,iconSizeAnimated,iconSizeAnimated) * 0.5
-                --connectionAlertIcon.size = vec2(iconSizeAnimated, iconSizeAnimated)
+                -- Uncomment the following lines to scale the icon size based on animationAddition.
+                -- local iconSizeAnimated = iconSize * (1.0 + animationAddition * 0.1)
+                -- connectionAlertIcon.scale3D = vec3(iconSizeAnimated, iconSizeAnimated, iconSizeAnimated) * 0.5
+                -- connectionAlertIcon.size = vec2(iconSizeAnimated, iconSizeAnimated)
+                -- Set the transparency of the icon based on the animation.
                 connectionAlertIcon.alpha = 1.0 + animationAddition
             end
         end
+        -- Make the icon visible if it was previously hidden.
         connectionAlertIcon.hidden = false
+        -- Change the icon's appearance based on the severity of the ping value.
         if currentPingValue > gameConstants.disconnectDelayThreshold * 0.5 then
             connectionAlertIcon:setModel(model:modelIndexForName("icon_connectionAlert"), {
                 [material.types.ui_standard.index] = material.types.ui_red.index,
@@ -250,10 +285,10 @@ function timeControls:setPingValue(currentPingValue)
                 [material.types.ui_standard.index] = material.types.ui_yellow.index,
             })
         end
+    -- If the ping is within an acceptable range, hide the connection alert icon.
     elseif connectionAlertIcon then
         connectionAlertIcon.hidden = true
     end
 end
-
 
 return timeControls
