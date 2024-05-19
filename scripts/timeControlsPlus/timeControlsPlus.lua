@@ -114,67 +114,78 @@ function timeControls:getLocalSpeedPreference()
     return currentLocalSpeedIndex or 0
 end
 
+-- Initializes time control interface elements in the game UI.
 function timeControls:init(gameUI, world)
 
+    -- Create a new view inside the game UI to hold all time control elements.
     mainView = View.new(gameUI.view)
     mainView.hidden = false
     mainView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
     mainView.baseOffset = vec3(10.0, -10.0, 0.0)
 
+    -- Define dimensions and positioning for the main time control elements.
     local circleViewSize = 60.0
     local panelSizeToUse = vec2(170.0, 60.0)
     local panelXOffset = -30.0
     mainView.size = vec2(circleViewSize + panelSizeToUse.x - panelXOffset, 60.0)
 
+    -- Scaling factor for the circle background (likely for a clock or timer).
     local circleBackgroundScale = circleViewSize * 0.5
 
+    -- Create and set up the clock background view.
     local clockBackground = ModelView.new(mainView)
     clockBackground:setModel(model:modelIndexForName("ui_clockBackground"))
     clockBackground.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
-    clockBackground.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
+    clockBackground.scale3D = vec3(circleBackgroundScale, circleBackgroundScale, circleBackgroundScale)
     clockBackground.size = vec2(circleViewSize, circleViewSize)
     clockBackground.baseOffset = vec3(0.0, 0.0, 0.0)
     clockBackground.alpha = 0.9
 
+    -- Create and set up the clock hand view.
     local clockHand = ModelView.new(mainView)
     clockHand:setModel(model:modelIndexForName("ui_clockMark"))
     clockHand.relativePosition = ViewPosition(MJPositionCenter, MJPositionCenter)
     clockHand.relativeView = clockBackground
-    clockHand.scale3D = vec3(circleBackgroundScale,circleBackgroundScale,circleBackgroundScale)
+    clockHand.scale3D = vec3(circleBackgroundScale, circleBackgroundScale, circleBackgroundScale)
     clockHand.size = vec2(circleViewSize, circleViewSize)
     clockHand.baseOffset = vec3(0.0, 0.0, 0.02 * circleBackgroundScale)
 
+    -- Function to update the clock hand based on the current time of day.
     clockHand.update = function(dt)
         local timeOfDayFraction = world:getTimeOfDayFraction()
         local zRotation = (timeOfDayFraction + 0.5) * math.pi * 2.0
-        clockHand.rotation = mat3Rotate(mat3Identity, zRotation, vec3(0.0,0.0,-1.0))
+        clockHand.rotation = mat3Rotate(mat3Identity, zRotation, vec3(0.0, 0.0, -1.0))
     end
 
+    -- Set dimensions and scaling for a side panel next to the clock.
     local panelScaleToUseX = panelSizeToUse.x * 0.5
     local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
     
+    -- Create and set up the panel view.
     panelView = ModelView.new(mainView)
     panelView:setModel(model:modelIndexForName("ui_panel_10x2"))
     panelView.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionTop)
     panelView.relativeView = clockBackground
     panelView.baseOffset = vec3(panelXOffset, 0.0, -2)
-    panelView.scale3D = vec3(panelScaleToUseX,panelScaleToUseY,panelScaleToUseX)
+    panelView.scale3D = vec3(panelScaleToUseX, panelScaleToUseY, panelScaleToUseX)
     panelView.size = panelSizeToUse
     panelView.alpha = 0.9
 
+    -- Define dimensions and offsets for time control buttons.
     local timeButtonSize = 30.0
     local timeButtonInitialXOffsetWithinPanel = 45.0
     local timeButtonInitialYOffsetWithinPanel = -6.0
     local timeButtonXPadding = 10.0
 
-    
+    -- Create a text view for displaying temperature (or other info).
     temperatureTextView = TextView.new(panelView)
     temperatureTextView.font = Font(uiCommon.fontName, 16)
     temperatureTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    temperatureTextView.baseOffset = vec3(0,-4,0)
+    temperatureTextView.baseOffset = vec3(0, -4, 0)
     temperatureTextView.text = ""
     
-    local pauseButton = uiStandardButton:create(panelView, vec2(timeButtonSize,timeButtonSize), uiStandardButton.types.timeControl)
+    -- Create a button for pausing the game.
+    local pauseButton = uiStandardButton:create(panelView, vec2(timeButtonSize, timeButtonSize), uiStandardButton.types.timeControl)
     pauseButton.userData.selectionCircleMaterial = material.types.ui_red.index
     pauseButton.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
     pauseButton.baseOffset = vec3(timeButtonInitialXOffsetWithinPanel, timeButtonInitialYOffsetWithinPanel, 2)
@@ -184,10 +195,12 @@ function timeControls:init(gameUI, world)
         world:setPaused()
         timeControls:updateLocalSpeedPreference(0)
     end)
+    -- Add a tooltip to the pause button.
     uiToolTip:add(pauseButton.userData.backgroundView, ViewPosition(MJPositionCenter, MJPositionBelow), locale:get("misc_Toggle") .. " " .. locale:get("ui_pause"), nil, toolTipOffset, nil, pauseButton)
     uiToolTip:addKeyboardShortcut(pauseButton.userData.backgroundView, "game", "pause", nil, nil)
     
-    local playButton = uiStandardButton:create(panelView, vec2(timeButtonSize,timeButtonSize), uiStandardButton.types.timeControl)
+    -- Create a button for playing or resuming the game.
+    local playButton = uiStandardButton:create(panelView, vec2(timeButtonSize, timeButtonSize), uiStandardButton.types.timeControl)
     playButton.relativeView = pauseButton
     playButton.userData.selectionCircleMaterial = material.types.ui_green.index
     playButton.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionTop)
@@ -198,10 +211,11 @@ function timeControls:init(gameUI, world)
         world:setPlay()
         timeControls:updateLocalSpeedPreference(1)
     end)
+    -- Add a tooltip to the play button.
     uiToolTip:add(playButton.userData.backgroundView, ViewPosition(MJPositionCenter, MJPositionBelow), locale:get("ui_play"), nil, toolTipOffset, nil, playButton)
     
-    
-    local ffButton = uiStandardButton:create(panelView, vec2(timeButtonSize,timeButtonSize), uiStandardButton.types.timeControl)
+    -- Create a button for fast-forwarding the game.
+    local ffButton = uiStandardButton:create(panelView, vec2(timeButtonSize, timeButtonSize), uiStandardButton.types.timeControl)
     ffButton.relativeView = playButton
     ffButton.userData.selectionCircleMaterial = material.types.ui_selected.index
     ffButton.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionTop)
@@ -212,16 +226,18 @@ function timeControls:init(gameUI, world)
         world:setFastForward()
         timeControls:updateLocalSpeedPreference(2)
     end)
+    -- Add a tooltip to the fast-forward button.
     uiToolTip:add(ffButton.userData.backgroundView, ViewPosition(MJPositionCenter, MJPositionBelow), locale:get("misc_Toggle") .. " " .. locale:get("ui_fastForward"), nil, toolTipOffset, nil, ffButton)
     uiToolTip:addKeyboardShortcut(ffButton.userData.backgroundView, "game", "speedFast", nil, nil)
 
-
+    -- Position temperature text relative to the pause button.
     temperatureTextView.relativeView = pauseButton
-    
 
-
+    -- Add a speed change listener to the world object.
     world:addSpeedChangeListener(serverSpeedMultiplierChanged)
+    -- Set and update local speed preference initially.
     timeControls:updateLocalSpeedPreference(1)
+    -- Update UI based on the current speed multiplier from the server.
     serverSpeedMultiplierChanged(world:getSpeedMultiplier(), world:getSpeedMultiplierIndex())
 end
 
