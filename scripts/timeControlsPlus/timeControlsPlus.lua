@@ -36,7 +36,6 @@ local currentSeason = nil
 local currentYear = nil
 
 --Custom UI components for displaying calendar information.
-local myPanelView = nil                                 --Panel where year, day and time are displayed
 local seasonTreeImage = nil                             --The tree season icon
 
 --Information labels
@@ -46,25 +45,16 @@ local timeClockText = nil                               --The digital clock
 local timeClockUnitLabel = nil                          --Time unit label. Seperate so it doesn't bounce around when the clock is updating
 
 --Dimensions of the UI objects
-local panelSizeToUse = vec2(110.0, 61.0)                --Added 1 more than the time control as the edge is a little bumpy and this creates a better seam
-local circleViewSize = 60.0                             --Size of the circle the tree sits in
 local seasonTreeImageSize = 60.0                        --Size of the model
 
 --Positioning things - vec3(x, y, z)
-local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
-local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
-local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
-local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
-local timeClockTextBaseOffset = vec3(13,20,0)
-local timeClockUnitLabelBaseOffset = vec3(47,20,0)
-local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
-local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)       --offset for the seasonal tree icon
-
---3D Scaling
-local panelScaleToUseX = panelSizeToUse.x * 0.5
-local panelScaleToUseY = panelSizeToUse.y * 0.5 / 0.2
-local circleBackgroundScale = circleViewSize * 0.5
-local seasonTreeImageScale = seasonTreeImageSize * 0.5
+local yearBaseOffset = vec3(282,58,0)                    --offset for the year text control.
+local dayBaseOffset = vec3(283,42,0)                     --offset for the day text control.
+local timeClockTextBaseOffset = vec3(283,20,0)
+local timeClockUnitLabelBaseOffset = vec3(317,20,0)
+local seasonCircleBaseOffset = vec3(380.0, 59.0, 1.0)    --offset for the circle panel bookend
+local seasonTreeBaseOffset = vec3(0.0, 0.0, 1.0)       --offset for the seasonal tree icon
+local seasonCircleBack = nil                            --Circle the tree icon sits inside of
 
 
 -- ******************** VANILLA FUNCTIONS ********************
@@ -149,18 +139,24 @@ end
 
 -- Initializes time control interface elements in the game UI.
 function timeControls:init(gameUI, world)
+
     --Time Variables
-    local timeUnitLabel = "WT"                                              --The time units to display on the screen
-    local daysInYear = world:getYearLength() / world:getDayLength()         --Calculate the number of days in the year.
-    local gameHourInSeconds = world:getDayLength()/24                       --Calculate this to future-proof for server owners changing it
-    local gameMinuteInSeconds = world:getDayLength()/1440                   --Calculate how long a game minute is in real world seconds
-    
-    --TimeControlPlus Functions
-    ---Rounds the given number
+    local yearTextView = nil                                        --The year label
+    local dayTextView = nil                                         --The day label
+    local timeClockText = nil                                       --The digital clock
+    local timeClockUnitLabel = nil                                  --Time unit label. Seperate so it doesn't bounce around when the clock is updating
+    local timeUnitLabel = "WT"                                      --The time units to display on the screen
+    local daysInYear = world:getYearLength() / world:getDayLength() --Calculate the number of days in the year.
+    local gameHourInSeconds = world:getDayLength()/24               --Calculate this to future-proof for server owners changing it
+    local gameMinuteInSeconds = world:getDayLength()/1440           --Calculate how long a game minute is in real world seconds
+    local mainPanelLength = 350.0
+
+    --TimeControlPlus: Rounds the given number
     local function round(n)
         return n >= 0 and math.floor(n + 0.5) or math.ceil(n - 0.5)
     end
 
+    --TimeControlPlus: Determine season and set tree model
     local function getSeason()
         
         --Object to hold the attributes
@@ -219,7 +215,7 @@ function timeControls:init(gameUI, world)
         return seasonObject
     end
 
-    ---Send a UI notification when the seasons change.
+    --TimeControlPlus: Send a UI notification when the seasons change.
     local function sendNotification(seasonNotifyInfo)
         --[[
             notificationsUI:displayNotification({
@@ -244,21 +240,12 @@ function timeControls:init(gameUI, world)
 
     -- Define dimensions and positioning for the main time control elements.
     local circleViewSize = 60.0
-    local panelSizeToUse = vec2(170.0, 60.0)
+    local panelSizeToUse = vec2(mainPanelLength, 60.0)
     local panelXOffset = -30.0
     mainView.size = vec2(circleViewSize + panelSizeToUse.x - panelXOffset, 60.0)
 
     -- Scaling factor for the circle background of the clock.
     local circleBackgroundScale = circleViewSize * 0.5
-
-    --TimeControlPlus Declares
-    local seasonCircleBack = nil                            --Circle the tree icon sits inside of
-    local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
-    local seasonTreeImage = nil                             --The tree season icon
-    local seasonTreeImageSize = 60.0                        --Size of the model
-    local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)       --offset for the seasonal tree icon
-    local seasonTreeImageScale = seasonTreeImageSize * 0.5
-
 
     -- Create and set up the clock background view.
     local clockBackground = ModelView.new(mainView)
@@ -297,7 +284,7 @@ function timeControls:init(gameUI, world)
     panelView.baseOffset = vec3(panelXOffset, 0.0, -2)
     panelView.scale3D = vec3(panelScaleToUseX, panelScaleToUseY, panelScaleToUseX)
     panelView.size = panelSizeToUse
-    panelView.alpha = 0.9
+    panelView.alpha = 0.9               --This affects transparency.
 
     -- Define dimensions and offsets for time control buttons.
     local timeButtonSize = 30.0
@@ -382,22 +369,15 @@ function timeControls:init(gameUI, world)
     seasonCircleBack.baseOffset = seasonCircleBaseOffset
     seasonCircleBack.alpha = 0.70
 
-    --The background panel for the text.  It is snuggled up to the rightmost edge of the vanilla time control
-    myPanelView = ModelView.new(mainView)
-    myPanelView:setModel(model:modelIndexForName("ui_panel_10x2"))
-    myPanelView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
-    myPanelView.relativeView = mainView
-    myPanelView.baseOffset = myPanelBaseOffset
-    myPanelView.scale3D = vec3(panelScaleToUseX,panelScaleToUseY,panelScaleToUseX)
-    myPanelView.size = panelSizeToUse
-    myPanelView.alpha = 0.9     --This affects transparency.
-    uiToolTip:add(myPanelView, ViewPosition(MJPositionCenter, MJPositionBelow), "", nil, toolTipOffset, nil, myPanelView)
-    myPanelView.update = function(dt)
+    -- Updates to the vanilla panelView
+    uiToolTip:add(panelView, ViewPosition(MJPositionCenter, MJPositionBelow), "", nil, toolTipOffset, nil, panelView)
+    panelView.update = function(dt)
         local season = getSeason()
-        uiToolTip:updateText(myPanelView, season.seasonText, nil, false)
+        uiToolTip:updateText(panelView, season.seasonText, nil, false)
     end
+
     --A GameObjectlView to show the tree to represent the season
-    seasonTreeImage = GameObjectView.new(myPanelView, vec2(128, 128)) --this second argument is the texture image size in pixels that the tree is rendered into
+    seasonTreeImage = GameObjectView.new(panelView, vec2(128, 128)) --this second argument is the texture image size in pixels that the tree is rendered into
     seasonTreeImage.size = vec2(seasonTreeImageSize, seasonTreeImageSize)
     seasonTreeImage.baseOffset = seasonTreeBaseOffset
     seasonTreeImage.relativeView = seasonCircleBack
@@ -416,10 +396,10 @@ function timeControls:init(gameUI, world)
     end
 
     --The year text, and the update function to keep it refreshed with the correct value
-    yearTextView = TextView.new(myPanelView)
+    yearTextView = TextView.new(panelView)
     yearTextView.font = Font(uiCommon.fontName, 16)
     yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    yearTextView.relativeView = myPanelView
+    yearTextView.relativeView = panelView
     yearTextView.baseOffset = yearBaseOffset
     yearTextView.update = function(dt)
         currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/daysInYear) + 1)
@@ -427,10 +407,10 @@ function timeControls:init(gameUI, world)
     end
 
     --The day of year text, and the update function to keep it refreshed with the correct value
-    dayTextView = TextView.new(myPanelView)
+    dayTextView = TextView.new(panelView)
     dayTextView.font = Font(uiCommon.fontName, 16)
     dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    dayTextView.relativeView = myPanelView
+    dayTextView.relativeView = panelView
     dayTextView.baseOffset = dayBaseOffset
     dayTextView.update = function(dt)
         --Calculate the day of the year.
@@ -441,10 +421,10 @@ function timeControls:init(gameUI, world)
     end
 
     --Digital Clock
-    timeClockText = TextView.new(myPanelView)
+    timeClockText = TextView.new(panelView)
     timeClockText.font = Font(uiCommon.fontName, 14)
     timeClockText.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    timeClockText.relativeView = myPanelView
+    timeClockText.relativeView = panelView
     timeClockText.baseOffset = timeClockTextBaseOffset
     timeClockText.update = function(dt)
         local secondsElapsedInDay = world:getWorldTime() % world:getDayLength() --How many real world seconds have elapsed in this day
@@ -457,10 +437,10 @@ function timeControls:init(gameUI, world)
     end
 
     --Time Unit label for the clock
-    timeClockUnitLabel = TextView.new(myPanelView)
+    timeClockUnitLabel = TextView.new(panelView)
     timeClockUnitLabel.font = Font(uiCommon.fontName, 11)
     timeClockUnitLabel.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    timeClockUnitLabel.relativeView = myPanelView
+    timeClockUnitLabel.relativeView = panelView
     timeClockUnitLabel.baseOffset = timeClockUnitLabelBaseOffset
     timeClockUnitLabel.text = timeUnitLabel
 end
@@ -470,8 +450,8 @@ function timeControls:setHiddenForTribeSelection(newHidden)
 end
 
 function timeControls:playerTemperatureZoneChanged(newTemperatureZoneIndex)
-    --temperatureTextView.text = weather.temperatureZones[newTemperatureZoneIndex].name
-    temperatureTextView.text = "Just Making sure"
+    temperatureTextView.text = weather.temperatureZones[newTemperatureZoneIndex].name
+    --temperatureTextView.text = "Just Making sure"
 end
 
 -- Define a function within the timeControls table to handle changes in ping value.
