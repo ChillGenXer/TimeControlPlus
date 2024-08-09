@@ -1,3 +1,5 @@
+[h2]Please note this is a temporary version to provide multiplayer compatibility.  A full release will come soon.[/h2]
+
 This mod adds a new component to the Time Control HUD located in the upper left-hand corner of the screen showing the current year, day of the year (1-8), world time (WT) and current season as an icon.
 
 [b]NOT SURE HOW TO INSTALL MODS?[/b] It's easy, you can check out a walk-through here: [url=https://wiki.playsapiens.com/index.php/Guide:Mod_Installation] Sapiens Mod Installation Guide[/url]
