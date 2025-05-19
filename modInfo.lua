@@ -1,8 +1,8 @@
 local modInfo = {
-  name = "Time Control Plus",
-  description = "An enhancement for the Time Control to add world time and calendar information. Full documentation is located at the website link.",
+  name = "TimeControlPlus",
+  description = "A full featured Heads Up Display (HUD) for Sapiens.",
   preview = "assets/TimeControlPlus.png",
-  version = "0.5.0.1",
+  version = "0.6.0.1",
   type = "world",
   developer = "ChillGenXer",
   website = "https://github.com/ChillGenXer/TimeControlPlus",
