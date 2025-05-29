@@ -15,22 +15,24 @@ local resource = mjrequire "common/resource"
 local gameObject = mjrequire "common/gameObject"
 local medicine = mjrequire "common/medicine"
 local foodUI = mjrequire "timeControlPlus/ui/foodUI"
-local settingsUI = mjrequire "timeControlPlus/ui/settingsUI"
+--local settingsUI = mjrequire "timeControlPlus/ui/settingsUI"
 local menuPanelsUI = mjrequire "timeControlPlus/ui/menuPanelsUI"
 local compassUI = mjrequire "timeControlPlus/ui/compassUI"
 local populationUI = mjrequire "timeControlPlus/ui/populationUI"
 local timeUI = mjrequire "timeControlPlus/ui/timeUI"
+local uiNewFoodButton = mjrequire "timeControlPlus/uiNewFoodButton"
 
 -- Initialize globals
 local timeControls = {}
 
 --TimeControlPlus UI Components
-local settingsUIView = nil
+--local settingsUIView = nil
 local panels = {} -- Track all panels and their associated buttons for managing visibility
 local toolTipOffset = vec3(0, -10, 0)
 local leftMenuPanel = nil
 local rightMenuPanel = nil -- New container for right-side elements
 local connectionAlertIcon = nil
+local menuView = nil
 
 -- MajicJungle Functions
 
@@ -108,6 +110,8 @@ function timeControls:init(gameUI, world)
     -- Create the top menu bars
     leftMenuPanel = menuPanelsUI:initLeftMenuPanel(gameUI.view)
     rightMenuPanel = menuPanelsUI:initRightMenuPanel(gameUI.view)
+
+    menuView = uiNewFoodButton:init(rightMenuPanel)
 
     --local test = mjrequire "timeControlPlus/test"
     --test:init(rightMenuPanel, gameUI)
