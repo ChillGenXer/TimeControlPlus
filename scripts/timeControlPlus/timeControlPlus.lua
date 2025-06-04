@@ -32,7 +32,6 @@ local toolTipOffset = vec3(0, -10, 0)
 local leftMenuPanel = nil
 local rightMenuPanel = nil -- New container for right-side elements
 local connectionAlertIcon = nil
-local menuView = nil
 
 -- MajicJungle Functions
 
