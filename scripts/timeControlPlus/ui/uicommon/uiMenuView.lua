@@ -107,7 +107,7 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
     menuStructure = {
         button = nil,
         menuPanels = {},
-        visibilityStack = {}
+        isMainMenuVisible = false -- Track main menu visibility state
     }
 
     -- Create the main button
@@ -125,30 +125,22 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
 
     -- Attach click handler to toggle the main menu
     uiStandardButton:setClickFunction(button, function()
-        local menuPanelView = menuStructure.menuPanels["MainMenu"].menuPanelView
-        if menuPanelView.hidden then
-            menuPanelView.hidden = false
-            menuStructure.visibilityStack = {"MainMenu"}
-        else
+        mj:log("Button clicked: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible) .. ", mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
+
+        -- Toggle based on isMainMenuVisible state
+        if menuStructure.isMainMenuVisible then
             -- Hide all menu panels when toggling off
             for _, panel in pairs(menuStructure.menuPanels) do
                 panel.menuPanelView.hidden = true
             end
-            menuStructure.visibilityStack = {}
+            menuStructure.isMainMenuVisible = false
+            mj:log("Hiding all panels: mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
+        else
+            mainMenuPanel.menuPanelView.hidden = false
+            menuStructure.isMainMenuVisible = true
+            mj:log("Showing main menu: mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
         end
     end)
-
-    -- Attach hover handlers to the button to show the main menu
-    button.hoverStart = function()
-        local menuPanelView = menuStructure.menuPanels["MainMenu"].menuPanelView
-        if menuPanelView.hidden then
-            menuPanelView.hidden = false
-            menuStructure.visibilityStack = {"MainMenu"}
-        end
-    end
-    button.hoverEnd = function()
-        -- Do not hide on hover end; visibility is managed by click or clickDownOutside
-    end
 
     return menuStructure
 end
@@ -218,14 +210,7 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
         end
     end
 
-    -- Attach clickDownOutside handler to keep parent menu visible while submenu is open
-    menuItem.colorView.clickDownOutside = function(buttonIndex)
-        -- Hide all menu panels when clicking outside
-        for _, panel in pairs(menuStructure.menuPanels) do
-            panel.menuPanelView.hidden = true
-        end
-        menuStructure.visibilityStack = {}
-    end
+    -- Removed clickDownOutside handler from menu items to prevent multiple triggers
 
     -- Insert the menu item into the menuItems table
     table.insert(menuItems, rowIndex, menuItem)
@@ -248,34 +233,56 @@ function uiMenuView:initialize()
         -- Attach hover handlers to the menuPanelView
         menuPanelView.hoverStart = function()
             menuPanelView.hidden = false
-            -- Ensure the menu is in the visibility stack
-            if panelName == "MainMenu" and not menuStructure.visibilityStack[1] then
-                menuStructure.visibilityStack[1] = "MainMenu"
-            elseif panelName ~= "MainMenu" and not menuStructure.visibilityStack[positionHierarchy + 1] then
-                menuStructure.visibilityStack[positionHierarchy + 1] = panelName
-            end
         end
         menuPanelView.hoverEnd = function()
             -- Only apply to submenus; MainMenu visibility is managed by clicks
             if panelName ~= "MainMenu" then
-                -- Hide this panel and all its descendants if the mouse isn't over a child
+                -- Hide this panel and all its descendants if not over a child
                 local shouldHide = true
-                for i = positionHierarchy + 2, #menuStructure.visibilityStack do
-                    if menuStructure.visibilityStack[i] then
-                        shouldHide = false
-                        break
-                    end
-                end
-                if shouldHide then
-                    -- Hide this panel and all descendants
-                    for _, otherPanel in pairs(menuStructure.menuPanels) do
-                        if otherPanel.positionHierarchy >= positionHierarchy then
-                            otherPanel.menuPanelView.hidden = true
+                -- Traverse descendants to check if any are visible
+                local currentPanel = panel
+                while currentPanel do
+                    for _, item in ipairs(currentPanel.menuItems) do
+                        if item.submenuPanelName then
+                            local submenuPanel = menuStructure.menuPanels[item.submenuPanelName]
+                            if submenuPanel and not submenuPanel.menuPanelView.hidden then
+                                shouldHide = false
+                                break
+                            end
                         end
                     end
-                    -- Clear the visibility stack for this level and below
-                    for i = positionHierarchy + 1, #menuStructure.visibilityStack do
-                        menuStructure.visibilityStack[i] = nil
+                    if not shouldHide then
+                        break
+                    end
+                    -- Move to the next descendant level
+                    local childFound = false
+                    for _, p in pairs(menuStructure.menuPanels) do
+                        if p.parentMenuName == currentPanel.menuPanelName and not p.menuPanelView.hidden then
+                            currentPanel = p
+                            childFound = true
+                            break
+                        end
+                    end
+                    if not childFound then
+                        currentPanel = nil
+                    end
+                end
+
+                if shouldHide then
+                    -- Hide this panel and all its descendants
+                    local panelsToHide = {panelName}
+                    local i = 1
+                    while i <= #panelsToHide do
+                        local currentPanelName = panelsToHide[i]
+                        local currentPanel = menuStructure.menuPanels[currentPanelName]
+                        currentPanel.menuPanelView.hidden = true
+                        -- Add child panels to the list
+                        for _, p in pairs(menuStructure.menuPanels) do
+                            if p.parentMenuName == currentPanelName then
+                                table.insert(panelsToHide, p.menuPanelName)
+                            end
+                        end
+                        i = i + 1
                     end
                 end
             end
@@ -283,11 +290,26 @@ function uiMenuView:initialize()
 
         -- Attach clickDownOutside handler to the menuPanelView to hide all panels
         menuPanelView.clickDownOutside = function(buttonIndex)
-            -- Hide all menu panels when clicking outside
-            for _, otherPanel in pairs(menuStructure.menuPanels) do
-                otherPanel.menuPanelView.hidden = true
+            -- Check if the click is truly outside all menu panels
+            local isOutsideAllPanels = true
+            for _, p in pairs(menuStructure.menuPanels) do
+                if not p.menuPanelView.hidden then
+                    isOutsideAllPanels = false
+                    break
+                end
             end
-            menuStructure.visibilityStack = {}
+
+            if isOutsideAllPanels then
+                mj:log("Menu panel clickDownOutside: click is outside all panels, hiding all")
+                -- Hide all menu panels when clicking outside
+                for _, otherPanel in pairs(menuStructure.menuPanels) do
+                    otherPanel.menuPanelView.hidden = true
+                end
+                menuStructure.isMainMenuVisible = false
+                mj:log("After panel clickDownOutside: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible))
+            else
+                mj:log("Menu panel clickDownOutside: click is not outside all panels, ignoring")
+            end
         end
 
         -- Attach hover handlers to menu items
@@ -298,12 +320,20 @@ function uiMenuView:initialize()
                     if siblingItem ~= menuItem and siblingItem.submenuPanelName then
                         local siblingSubmenu = menuStructure.menuPanels[siblingItem.submenuPanelName]
                         if siblingSubmenu and not siblingSubmenu.menuPanelView.hidden then
-                            siblingSubmenu.menuPanelView.hidden = true
-                            -- Clear the visibility stack for that submenu's level and below
-                            for i = positionHierarchy + 2, #menuStructure.visibilityStack do
-                                if menuStructure.visibilityStack[i] == siblingItem.submenuPanelName then
-                                    menuStructure.visibilityStack[i] = nil
+                            -- Hide the sibling submenu and its descendants
+                            local panelsToHide = {siblingItem.submenuPanelName}
+                            local i = 1
+                            while i <= #panelsToHide do
+                                local currentPanelName = panelsToHide[i]
+                                local currentPanel = menuStructure.menuPanels[currentPanelName]
+                                currentPanel.menuPanelView.hidden = true
+                                -- Add child panels to the list
+                                for _, p in pairs(menuStructure.menuPanels) do
+                                    if p.parentMenuName == currentPanelName then
+                                        table.insert(panelsToHide, p.menuPanelName)
+                                    end
                                 end
+                                i = i + 1
                             end
                         end
                     end
@@ -314,13 +344,6 @@ function uiMenuView:initialize()
                     local submenuPanel = menuStructure.menuPanels[menuItem.submenuPanelName]
                     if submenuPanel then
                         submenuPanel.menuPanelView.hidden = false
-                        -- Add to visibility stack
-                        if panelName == "MainMenu" and not menuStructure.visibilityStack[1] then
-                            menuStructure.visibilityStack[1] = "MainMenu"
-                        end
-                        if not menuStructure.visibilityStack[positionHierarchy + 2] then
-                            menuStructure.visibilityStack[positionHierarchy + 2] = menuItem.submenuPanelName
-                        end
                     end
                 end
             end
