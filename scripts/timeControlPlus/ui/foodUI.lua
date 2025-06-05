@@ -291,7 +291,7 @@ local function populateCategorySubmenu(listView, category, items, listViewSize, 
 
     -- Submenu indicator (for category)
     local submenuIndicator = ModelView.new(headerRow)
-    submenuIndicator:setModel(model:modelIndexForName("icon_circle"), {default = material.types.ui_bronze.index})
+    submenuIndicator:setModel(model:modelIndexForName("icon_play"))
     submenuIndicator.relativePosition = ViewPosition(MJPositionInnerRight, MJPositionCenter)
     submenuIndicator.baseOffset = vec3(-10, 0, 2)
     submenuIndicator.scale3D = vec3(10, 10, 10)

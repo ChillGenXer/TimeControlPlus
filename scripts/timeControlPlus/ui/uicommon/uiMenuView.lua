@@ -25,7 +25,6 @@ local fontSize = 16
 local backgroundColor = vec4(0.3, 0.3, 0.3, 1.0) -- Brighter gray for testing visibility, with alpha
 local defaultBackgroundColors = { vec4(0.5, 0.5, 0.5, 1.0), vec4(0.2, 0.2, 0.2, 1.0) } -- Brighter for testing, with alpha
 local textOffsetX = 10
-local iconPlayOffsetX = 10 -- Offset for IconPlay model from right edge
 
 -- Local function to update Y offsets for rows and resize the menu panel
 local function updateYOffsets(self, rowStartIndex)
@@ -44,7 +43,9 @@ local function updateYOffsets(self, rowStartIndex)
         end
         menuItem.colorView.baseOffset = vec3(0, -menuItem.yOffsetFromTop, 0)
         if menuItem.iconPlayView then
-            menuItem.iconPlayView.baseOffset = vec3((panelWidth - 2 * contentPaddingHorizontal - 2 * rowInsetHorizontal) / 2 - iconPlayOffsetX, 0, 1)
+            -- Position the icon relative to the right edge, no x-offset
+            menuItem.iconPlayView.baseOffset = vec3(0, 0, 2) -- z=2 to match old code
+            mj:log("Updating submenu indicator position for menu item: " .. tostring(menuItem.textView.text) .. ", baseOffset = " .. tostring(menuItem.iconPlayView.baseOffset) .. ", size = " .. tostring(menuItem.iconPlayView.size) .. ", alpha = " .. tostring(menuItem.iconPlayView.alpha) .. ", hidden = " .. tostring(menuItem.iconPlayView.hidden) .. ", colorView.hidden = " .. tostring(menuItem.colorView.hidden) .. ", menuPanelView.hidden = " .. tostring(menuPanelView.hidden))
         end
     end
 
@@ -198,7 +199,7 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
         rowHeight = rowHeightToUse,
         yOffsetFromTop = 0,
         submenuPanelName = itemParams.submenuPanelName, -- Optional: name of submenu panel this item controls
-        iconPlayView = nil -- Will be set if submenuPanelName exists
+        iconPlayView = nil -- Will be set in initialize if submenu exists
     }
     menuItem.colorView.size = vec2(
         menuPanel.panelWidth - 2 * contentPaddingHorizontal - 2 * rowInsetHorizontal,
@@ -215,26 +216,14 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
     textView.font = Font(uiCommon.fontName, fontSize)
     if itemParams.useMetricsHeight then
         textView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
-        textView.baseOffset = vec3(textOffsetX, -5, 1)
+        textView.baseOffset = vec3(textOffsetX, -5, 1) -- z=1
     else
         textView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionCenter)
-        textView.baseOffset = vec3(textOffsetX, 0, 1)
+        textView.baseOffset = vec3(textOffsetX, 0, 1) -- z=1
     end
     textView.text = itemParams.text or "Unknown Item"
     textView.color = mj.textColor
     menuItem.textView = textView
-
-    -- Add the IconPlay model if this menu item has a child
-    if itemParams.submenuPanelName then
-        local iconPlayView = ModelView.new(menuItem.colorView)
-        iconPlayView:setModel(model:modelIndexForName("icon_play"))
-        iconPlayView.relativePosition = ViewPosition(MJPositionInnerRight, MJPositionCenter)
-        -- Position will be updated in updateYOffsets
-        iconPlayView.baseOffset = vec3((menuPanel.panelWidth - 2 * contentPaddingHorizontal - 2 * rowInsetHorizontal) / 2 - iconPlayOffsetX, 0, 1)
-        iconPlayView.scale3D = vec3(0.5, 0.5, 0.5) -- Small scale for the icon
-        iconPlayView.hidden = false
-        menuItem.iconPlayView = iconPlayView
-    end
 
     -- Add a click handler if provided
     if itemParams.onClick then
@@ -253,9 +242,9 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
     return menuItem
 end
 
--- Function to initialize hover event functionality
+-- Function to initialize hover event functionality and add submenu indicators
 function uiMenuView:initialize()
-    -- Attach hover handlers to all menu panels and items
+    -- Attach hover handlers to all menu panels and items, and add submenu indicators
     for panelName, panel in pairs(menuStructure.menuPanels) do
         local menuPanelView = panel.menuPanelView
         local menuItems = panel.menuItems
@@ -288,8 +277,27 @@ function uiMenuView:initialize()
             end
         end
 
-        -- Attach hover handlers to menu items
+        -- Attach hover handlers to menu items and add submenu indicators
         for _, menuItem in ipairs(menuItems) do
+            -- Add submenu indicator if the menu item has a submenu
+            if menuItem.submenuPanelName and menuStructure.menuPanels[menuItem.submenuPanelName] then
+                if not menuItem.iconPlayView then
+                    local iconPlayView = ModelView.new(menuItem.colorView)
+                    local modelIndex = model:modelIndexForName("icon_play")
+                    iconPlayView:setModel(modelIndex)
+                    iconPlayView.relativePosition = ViewPosition(MJPositionInnerRight, MJPositionCenter)
+                    iconPlayView.scale3D = vec3(10, 10, 10)
+                    iconPlayView.size = vec2(20, 20)
+                    iconPlayView.masksEvents = false
+                    iconPlayView.hidden = false
+                    iconPlayView.alpha = 1.0
+                    menuItem.iconPlayView = iconPlayView
+                    mj:log("Adding submenu indicator for menu item: " .. tostring(menuItem.textView.text) .. ", modelIndex = " .. tostring(modelIndex) .. ", scale3D = " .. tostring(iconPlayView.scale3D) .. ", size = " .. tostring(iconPlayView.size) .. ", alpha = " .. tostring(iconPlayView.alpha) .. ", masksEvents = " .. tostring(iconPlayView.masksEvents) .. ", hidden = " .. tostring(iconPlayView.hidden) .. ", parent colorView.hidden = " .. tostring(menuItem.colorView.hidden) .. ", parent menuPanelView.hidden = " .. tostring(menuPanelView.hidden))
+                    -- Update offsets to set the baseOffset
+                    updateYOffsets(panel, 1)
+                end
+            end
+
             menuItem.colorView.hoverStart = function()
                 -- Hide submenus of sibling menu items in the same panel
                 for _, siblingItem in ipairs(menuItems) do
