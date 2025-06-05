@@ -107,7 +107,8 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
     menuStructure = {
         button = nil,
         menuPanels = {},
-        isMainMenuVisible = false -- Track main menu visibility state
+        isMainMenuVisible = false, -- Track main menu visibility state
+        isClickProcessed = false -- Prevent retriggering during a single click event
     }
 
     -- Create the main button
@@ -125,6 +126,12 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
 
     -- Attach click handler to toggle the main menu
     uiStandardButton:setClickFunction(button, function()
+        if menuStructure.isClickProcessed then
+            mj:log("Button click ignored: click already processed")
+            return
+        end
+        menuStructure.isClickProcessed = true
+
         mj:log("Button clicked: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible) .. ", mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
 
         -- Toggle based on isMainMenuVisible state
@@ -140,7 +147,34 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
             menuStructure.isMainMenuVisible = true
             mj:log("Showing main menu: mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
         end
+
+        menuStructure.isClickProcessed = false
     end)
+
+    -- Attach clickDownOutside handler to the button to handle clicks outside the entire menu (including button)
+    button.clickDownOutside = function(buttonIndex)
+        -- Check if any menu panel is visible
+        local isAnyPanelVisible = false
+        for _, panel in pairs(menuStructure.menuPanels) do
+            if not panel.menuPanelView.hidden then
+                isAnyPanelVisible = true
+                break
+            end
+        end
+
+        if not isAnyPanelVisible then
+            mj:log("Button clickDownOutside: no panels visible, ignoring")
+            return -- No panels are visible, no action needed
+        end
+
+        mj:log("Button clickDownOutside: click is outside button and all panels, hiding all panels")
+        -- Hide all menu panels when clicking outside
+        for _, panel in pairs(menuStructure.menuPanels) do
+            panel.menuPanelView.hidden = true
+        end
+        menuStructure.isMainMenuVisible = false
+        mj:log("After button clickDownOutside: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible) .. ", mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
+    end
 
     return menuStructure
 end
@@ -210,8 +244,6 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
         end
     end
 
-    -- Removed clickDownOutside handler from menu items to prevent multiple triggers
-
     -- Insert the menu item into the menuItems table
     table.insert(menuItems, rowIndex, menuItem)
 
@@ -237,78 +269,22 @@ function uiMenuView:initialize()
         menuPanelView.hoverEnd = function()
             -- Only apply to submenus; MainMenu visibility is managed by clicks
             if panelName ~= "MainMenu" then
-                -- Hide this panel and all its descendants if not over a child
+                -- Hide this panel and all its descendants if no deeper panels are visible
                 local shouldHide = true
-                -- Traverse descendants to check if any are visible
-                local currentPanel = panel
-                while currentPanel do
-                    for _, item in ipairs(currentPanel.menuItems) do
-                        if item.submenuPanelName then
-                            local submenuPanel = menuStructure.menuPanels[item.submenuPanelName]
-                            if submenuPanel and not submenuPanel.menuPanelView.hidden then
-                                shouldHide = false
-                                break
-                            end
-                        end
-                    end
-                    if not shouldHide then
+                for _, otherPanel in pairs(menuStructure.menuPanels) do
+                    if otherPanel.positionHierarchy > positionHierarchy and not otherPanel.menuPanelView.hidden then
+                        shouldHide = false
                         break
                     end
-                    -- Move to the next descendant level
-                    local childFound = false
-                    for _, p in pairs(menuStructure.menuPanels) do
-                        if p.parentMenuName == currentPanel.menuPanelName and not p.menuPanelView.hidden then
-                            currentPanel = p
-                            childFound = true
-                            break
-                        end
-                    end
-                    if not childFound then
-                        currentPanel = nil
-                    end
                 end
-
                 if shouldHide then
-                    -- Hide this panel and all its descendants
-                    local panelsToHide = {panelName}
-                    local i = 1
-                    while i <= #panelsToHide do
-                        local currentPanelName = panelsToHide[i]
-                        local currentPanel = menuStructure.menuPanels[currentPanelName]
-                        currentPanel.menuPanelView.hidden = true
-                        -- Add child panels to the list
-                        for _, p in pairs(menuStructure.menuPanels) do
-                            if p.parentMenuName == currentPanelName then
-                                table.insert(panelsToHide, p.menuPanelName)
-                            end
+                    -- Hide this panel and all descendants
+                    for _, otherPanel in pairs(menuStructure.menuPanels) do
+                        if otherPanel.positionHierarchy >= positionHierarchy then
+                            otherPanel.menuPanelView.hidden = true
                         end
-                        i = i + 1
                     end
                 end
-            end
-        end
-
-        -- Attach clickDownOutside handler to the menuPanelView to hide all panels
-        menuPanelView.clickDownOutside = function(buttonIndex)
-            -- Check if the click is truly outside all menu panels
-            local isOutsideAllPanels = true
-            for _, p in pairs(menuStructure.menuPanels) do
-                if not p.menuPanelView.hidden then
-                    isOutsideAllPanels = false
-                    break
-                end
-            end
-
-            if isOutsideAllPanels then
-                mj:log("Menu panel clickDownOutside: click is outside all panels, hiding all")
-                -- Hide all menu panels when clicking outside
-                for _, otherPanel in pairs(menuStructure.menuPanels) do
-                    otherPanel.menuPanelView.hidden = true
-                end
-                menuStructure.isMainMenuVisible = false
-                mj:log("After panel clickDownOutside: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible))
-            else
-                mj:log("Menu panel clickDownOutside: click is not outside all panels, ignoring")
             end
         end
 
@@ -320,20 +296,12 @@ function uiMenuView:initialize()
                     if siblingItem ~= menuItem and siblingItem.submenuPanelName then
                         local siblingSubmenu = menuStructure.menuPanels[siblingItem.submenuPanelName]
                         if siblingSubmenu and not siblingSubmenu.menuPanelView.hidden then
-                            -- Hide the sibling submenu and its descendants
-                            local panelsToHide = {siblingItem.submenuPanelName}
-                            local i = 1
-                            while i <= #panelsToHide do
-                                local currentPanelName = panelsToHide[i]
-                                local currentPanel = menuStructure.menuPanels[currentPanelName]
-                                currentPanel.menuPanelView.hidden = true
-                                -- Add child panels to the list
-                                for _, p in pairs(menuStructure.menuPanels) do
-                                    if p.parentMenuName == currentPanelName then
-                                        table.insert(panelsToHide, p.menuPanelName)
-                                    end
+                            siblingSubmenu.menuPanelView.hidden = true
+                            -- Recursively hide all descendants
+                            for _, otherPanel in pairs(menuStructure.menuPanels) do
+                                if otherPanel.positionHierarchy > siblingSubmenu.positionHierarchy then
+                                    otherPanel.menuPanelView.hidden = true
                                 end
-                                i = i + 1
                             end
                         end
                     end
