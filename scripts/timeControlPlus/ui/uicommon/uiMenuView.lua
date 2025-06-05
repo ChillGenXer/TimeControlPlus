@@ -6,6 +6,7 @@ local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local material = mjrequire "common/material"
+local uiGameObjectView = mjrequire "mainThread/ui/uiCommon/uiGameObjectView"
 
 local uiMenuView = {}
 
@@ -47,6 +48,9 @@ local function updateYOffsets(self, rowStartIndex)
             menuItem.iconPlayView.baseOffset = vec3(0, 0, 2) -- z=2 to match old code
             mj:log("Updating submenu indicator position for menu item: " .. tostring(menuItem.textView.text) .. ", baseOffset = " .. tostring(menuItem.iconPlayView.baseOffset) .. ", size = " .. tostring(menuItem.iconPlayView.size) .. ", alpha = " .. tostring(menuItem.iconPlayView.alpha) .. ", hidden = " .. tostring(menuItem.iconPlayView.hidden) .. ", colorView.hidden = " .. tostring(menuItem.colorView.hidden) .. ", menuPanelView.hidden = " .. tostring(menuPanelView.hidden))
         end
+        if menuItem.gameObjectView then
+            menuItem.gameObjectView.baseOffset = vec3(8, 0, 1) -- Position icon to the left
+        end
     end
 
     -- Calculate total content height
@@ -64,9 +68,9 @@ local function updateYOffsets(self, rowStartIndex)
     menuPanelView.size = vec2(menuViewWidth, menuViewHeight)
 end
 
--- Function to create a new menu panel
-function uiMenuView:createMenuPanel(menuPanelName, parentView, parentMenuItem, parentMenuName)
-    local panelWidth = 180 + borderWidth -- Width for better fit
+-- Function to create a new menu panel with optional custom width
+function uiMenuView:createMenuPanel(menuPanelName, parentView, parentMenuItem, parentMenuName, customPanelWidth)
+    local panelWidth = customPanelWidth or (180 + borderWidth) -- Default to 185 if not specified
     local newMenuPanel = {
         menuPanelName = menuPanelName,
         panelWidth = panelWidth,
@@ -102,8 +106,8 @@ function uiMenuView:createMenuPanel(menuPanelName, parentView, parentMenuItem, p
     return newMenuPanel
 end
 
--- Function to create a new menu instance with a button
-function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalPosition, buttonOffset)
+-- Function to create a new menu instance with a button, accepting custom main menu width
+function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalPosition, buttonOffset, mainMenuPanelWidth)
     -- Initialize the module-level menuStructure
     menuStructure = {
         button = nil,
@@ -122,8 +126,8 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
     button.masksEvents = true
     menuStructure.button = button
 
-    -- Create the main menu panel
-    local mainMenuPanel = self:createMenuPanel("MainMenu", button)
+    -- Create the main menu panel with custom width if specified
+    self:createMenuPanel("MainMenu", button, nil, nil, mainMenuPanelWidth)
 
     -- Attach click handler to toggle the main menu
     uiStandardButton:setClickFunction(button, function()
@@ -133,6 +137,7 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
         end
         menuStructure.isClickProcessed = true
 
+        local mainMenuPanel = menuStructure.menuPanels["MainMenu"]
         mj:log("Button clicked: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible) .. ", mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
 
         -- Toggle based on isMainMenuVisible state
@@ -146,6 +151,10 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
         else
             mainMenuPanel.menuPanelView.hidden = false
             menuStructure.isMainMenuVisible = true
+            -- Log visibility of all menu items
+            for i, item in ipairs(mainMenuPanel.menuItems) do
+                mj:log("Menu item " .. i .. ": " .. tostring(item.textView.text) .. ", colorView.hidden = " .. tostring(item.colorView.hidden))
+            end
             mj:log("Showing main menu: mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
         end
 
@@ -174,7 +183,7 @@ function uiMenuView:create(parentView, buttonSize, horizontalPosition, verticalP
             panel.menuPanelView.hidden = true
         end
         menuStructure.isMainMenuVisible = false
-        mj:log("After button clickDownOutside: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible) .. ", mainMenu.hidden = " .. tostring(mainMenuPanel.menuPanelView.hidden))
+        mj:log("After button clickDownOutside: isMainMenuVisible = " .. tostring(menuStructure.isMainMenuVisible) .. ", mainMenu.hidden = " .. tostring(menuStructure.menuPanels["MainMenu"].menuPanelView.hidden))
     end
 
     return menuStructure
@@ -199,17 +208,34 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
         rowHeight = rowHeightToUse,
         yOffsetFromTop = 0,
         submenuPanelName = itemParams.submenuPanelName, -- Optional: name of submenu panel this item controls
-        iconPlayView = nil -- Will be set in initialize if submenu exists
+        iconPlayView = nil, -- Will be set in initialize if submenu exists or for teleport icon
+        gameObjectView = nil -- Will be set for category/item icons
     }
     menuItem.colorView.size = vec2(
         menuPanel.panelWidth - 2 * contentPaddingHorizontal - 2 * rowInsetHorizontal,
         rowHeightToUse
     )
     menuItem.colorView.relativePosition = ViewPosition(MJPositionCenter, MJPositionTop)
+    menuItem.colorView.hidden = false -- Explicitly set to false
 
     local colorIndex = menuPanel.backgroundColorCounter % 2 + 1
     menuItem.colorView.color = defaultBackgroundColors[colorIndex]
     menuPanel.backgroundColorCounter = menuPanel.backgroundColorCounter + 1
+
+    -- Add game object icon if specified (for category/item icons)
+    if itemParams.gameObjectTypeIndex then
+        local iconSize = vec2(30.0, 30.0)
+        local gameObjectView = uiGameObjectView:create(menuItem.colorView, iconSize, uiGameObjectView.types.standard)
+        gameObjectView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionCenter)
+        uiGameObjectView:setObject(gameObjectView, {
+            objectTypeIndex = itemParams.gameObjectTypeIndex
+        }, nil, nil)
+        gameObjectView.masksEvents = false
+        gameObjectView.alpha = 1.0
+        gameObjectView.hidden = false
+        menuItem.gameObjectView = gameObjectView
+        mj:log("Inserted row with gameObjectView: text = " .. tostring(itemParams.text) .. ", gameObjectView.hidden = " .. tostring(gameObjectView.hidden))
+    end
 
     -- Add the text for the menu item
     local textView = TextView.new(menuItem.colorView)
@@ -219,10 +245,15 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
         textView.baseOffset = vec3(textOffsetX, -5, 1) -- z=1
     else
         textView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionCenter)
-        textView.baseOffset = vec3(textOffsetX, 0, 1) -- z=1
+        if itemParams.gameObjectTypeIndex then
+            textView.baseOffset = vec3(textOffsetX + 30, 0, 1) -- Offset to the right of the icon
+        else
+            textView.baseOffset = vec3(textOffsetX, 0, 1) -- z=1
+        end
     end
     textView.text = itemParams.text or "Unknown Item"
     textView.color = mj.textColor
+    textView.hidden = false
     menuItem.textView = textView
 
     -- Add a click handler if provided
@@ -239,6 +270,7 @@ function uiMenuView:insertRow(menuPanelName, itemParams)
     -- Update positions and resize the menu panel
     updateYOffsets(menuPanel, rowIndex)
 
+    mj:log("Inserted row: text = " .. tostring(itemParams.text) .. ", colorView.hidden = " .. tostring(menuItem.colorView.hidden) .. ", menuPanelView.hidden = " .. tostring(menuPanel.menuPanelView.hidden))
     return menuItem
 end
 
@@ -277,7 +309,7 @@ function uiMenuView:initialize()
             end
         end
 
-        -- Attach hover handlers to menu items and add submenu indicators
+        -- Attach hover handlers to menu items and add submenu indicators or teleport icons
         for _, menuItem in ipairs(menuItems) do
             -- Add submenu indicator if the menu item has a submenu
             if menuItem.submenuPanelName and menuStructure.menuPanels[menuItem.submenuPanelName] then

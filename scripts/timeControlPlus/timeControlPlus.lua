@@ -2,25 +2,25 @@
 local mjm = mjrequire "common/mjm"
 local vec3 = mjm.vec3
 local vec2 = mjm.vec2
-local vec4 = mjm.vec4
+--local vec4 = mjm.vec4
 local locale = mjrequire "common/locale"
 local model = mjrequire "common/model"
 local gameConstants = mjrequire "common/gameConstants"
 local material = mjrequire "common/material"
-local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
-local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
+--local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
+--local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
-local uiScrollView = mjrequire "mainThread/ui/uiCommon/uiScrollView"
-local resource = mjrequire "common/resource"
-local gameObject = mjrequire "common/gameObject"
-local medicine = mjrequire "common/medicine"
-local foodUI = mjrequire "timeControlPlus/ui/foodUI"
+--local uiScrollView = mjrequire "mainThread/ui/uiCommon/uiScrollView"
+--local resource = mjrequire "common/resource"
+--local gameObject = mjrequire "common/gameObject"
+--local medicine = mjrequire "common/medicine"
+--local foodUI = mjrequire "timeControlPlus/ui/foodUI"
 --local settingsUI = mjrequire "timeControlPlus/ui/settingsUI"
 local menuPanelsUI = mjrequire "timeControlPlus/ui/menuPanelsUI"
 local compassUI = mjrequire "timeControlPlus/ui/compassUI"
 local populationUI = mjrequire "timeControlPlus/ui/populationUI"
 local timeUI = mjrequire "timeControlPlus/ui/timeUI"
-local uiNewFoodButton = mjrequire "timeControlPlus/uiNewFoodButton"
+local uiFoodButton = mjrequire "timeControlPlus/ui/uiFoodButton"
 
 -- Initialize globals
 local timeControls = {}
@@ -32,6 +32,7 @@ local toolTipOffset = vec3(0, -10, 0)
 local leftMenuPanel = nil
 local rightMenuPanel = nil -- New container for right-side elements
 local connectionAlertIcon = nil
+local foodMenu = nil
 
 -- MajicJungle Functions
 
@@ -110,72 +111,15 @@ function timeControls:init(gameUI, world)
     leftMenuPanel = menuPanelsUI:initLeftMenuPanel(gameUI.view)
     rightMenuPanel = menuPanelsUI:initRightMenuPanel(gameUI.view)
 
-    menuView = uiNewFoodButton:init(rightMenuPanel)
-
-    --local test = mjrequire "timeControlPlus/test"
-    --test:init(rightMenuPanel, gameUI)
-
-    -- -- Create settings button
-    -- local settingsButtonSize = vec2(80.0, 40.0) -- Matching the foodButton size
-    -- local settingsButtonBaseOffset = vec3(50, -3, 0) -- Adjust offset as needed for positioning
-
-    -- local settingsButton = uiStandardButton:create(rightMenuPanel, settingsButtonSize, uiStandardButton.types.favor_10x3, {
-    --     default = material.types.ui_background.index
-    -- })
-    -- settingsButton.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionTop)
-    -- settingsButton.relativeView = rightMenuPanel -- Adjust relativeView if needed (e.g., to another button)
-    -- settingsButton.baseOffset = settingsButtonBaseOffset
-
-    -- -- Add settings icon (centered)
-    -- local settingsIconModel = "icon_settings"
-    -- local settingsIconBaseOffset = vec3(0, 0, 0) -- Centered offset
-    -- local iconHalfSize = 9 -- Matching the foodIcon size
-    -- local settingsIconScale3D = vec3(iconHalfSize, iconHalfSize, iconHalfSize)
-    -- local settingsIconSize = vec2(9, 9) * 2.0
-    -- local settingsIcon = ModelView.new(settingsButton)
-    -- settingsIcon:setModel(model:modelIndexForName(settingsIconModel))
-    -- settingsIcon.relativePosition = ViewPosition(MJPositionCenter, MJPositionCenter)
-    -- settingsIcon.baseOffset = settingsIconBaseOffset
-    -- settingsIcon.scale3D = settingsIconScale3D
-    -- settingsIcon.size = settingsIconSize
-    -- settingsIcon.masksEvents = false
-    -- settingsIcon.alpha = 1.0
-
---local testMenu = mjrequire "timeControlPlus/test"
---testMenu.init(leftMenuPanel, gameUI)
-
--- uiStandardButton:setClickFunction(settingsButton, function()
---     buttonsTestPanel.hidden = not buttonsTestPanel.hidden
--- end)
-    --settingsUIView = settingsUI:init(gameUI)
-
-
-    -- -- Set click function
-    -- uiStandardButton:setClickFunction(settingsButton, function()
-    --     --settingsUIView.hidden = not settingsUIView.hidden
-    -- end)
-
-        -- Initialize foodUI
-    foodUI:init(gameUI, world)
-
-    -- Food
-    local foodButton, updateFoodInfoText = foodUI:initFoodButton(leftMenuPanel, leftMenuPanel, panels)
-    panels.food = {
-        panel = foodButton.userData.panel,
-        button = foodButton,
-        tooltip = {
-            position = ViewPosition(MJPositionCenter, MJPositionBelow),
-            text = "Food",
-            description = nil,
-            offset = vec3(0, -8, 4)
-        },
-        update = updateFoodInfoText
-    }
     -- Setup the compass
     compassUI:init(gameUI, world)
 
+    -- Create the food menu
+    foodMenu = uiFoodButton:init(gameUI, world, leftMenuPanel, leftMenuPanel)
+
     -- Setup the population button
-    populationUI:init(world, leftMenuPanel, foodButton, panels)
+    populationUI:init(world, leftMenuPanel, foodMenu, panels)
+
 
     -- ### MajicJungle:Connection Alert Icon ### --
     if connectionAlertIcon then

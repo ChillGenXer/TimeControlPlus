@@ -1,6 +1,7 @@
 local mjm = mjrequire "common/mjm"
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
+local resource = mjrequire "common/resource"
 local uiMenuView = mjrequire "timeControlPlus/ui/uicommon/uiMenuView"
 
 local uiNewFoodButton = {}
@@ -8,18 +9,19 @@ local uiNewFoodButton = {}
 -- Note: Assumes 'mj' is a global provided by Sapiens for logging (e.g., mj:log)
 
 function uiNewFoodButton:init(parentView)
-    -- Step 1: Create the menu structure with a button
+    -- Step 1: Create the menu structure with a button, passing custom main menu width
     local menuStructure = uiMenuView:create(
         parentView,
         vec2(80.0, 40.0),
         MJPositionInnerLeft,
         MJPositionTop,
-        vec3(0, 0, 0)
+        vec3(0, 0, 0),
+        300 -- Custom main menu panel width
     )
 
     -- Step 2: Populate the mainMenu panel with menuItems
     menuStructure.menuPanels["MainMenu"].menuItems[1] = uiMenuView:insertRow("MainMenu", {
-        text = "MI1.ItemA",
+        text = "MI1.ItemA (Longer Text Here)",
         onClick = function()
             mj:log("Clicked MI1.ItemA")
         end
@@ -27,16 +29,18 @@ function uiNewFoodButton:init(parentView)
 
     menuStructure.menuPanels["MainMenu"].menuItems[2] = uiMenuView:insertRow("MainMenu", {
         text = "MI2.ItemB",
-        submenuPanelName = "subMenuMenuItem2" -- Specify the submenu this item controls
+        submenuPanelName = "subMenuMenuItem2",
+        gameObjectTypeIndex = resource.types["apple"].displayGameObjectTypeIndex -- Add an icon
     })
 
     menuStructure.menuPanels["MainMenu"].menuItems[3] = uiMenuView:insertRow("MainMenu", {
         text = "MI3.ItemC",
-        submenuPanelName = "subMenuMenuItem3" -- Specify another submenu
+        submenuPanelName = "subMenuMenuItem3",
+        gameObjectTypeIndex = resource.types["alpacaMeat"].displayGameObjectTypeIndex -- Add an icon
     })
 
     menuStructure.menuPanels["MainMenu"].menuItems[4] = uiMenuView:insertRow("MainMenu", {
-        text = "MI4.ItemD",
+        text = "MI4.ItemD (Another Long Item Name)",
         onClick = function()
             mj:log("Clicked MI4.ItemD")
         end
@@ -58,10 +62,10 @@ function uiNewFoodButton:init(parentView)
 
     -- Step 3: Create subMenuMenuItem2 and its menuItems, specifying the parent menuItem
     local parentMenuItem2 = menuStructure.menuPanels["MainMenu"].menuItems[2]
-    uiMenuView:createMenuPanel("subMenuMenuItem2", parentMenuItem2.colorView, parentMenuItem2, "MainMenu")
+    uiMenuView:createMenuPanel("subMenuMenuItem2", parentMenuItem2.colorView, parentMenuItem2, "MainMenu", 300)
     menuStructure.menuPanels["subMenuMenuItem2"].menuItems[1] = uiMenuView:insertRow("subMenuMenuItem2", {
-        text = "MI2.ItemB1",
-        submenuPanelName = "subSubMenuItemB1" -- Add a third level submenu
+        text = "MI2.ItemB1 (Submenu Long Text)",
+        submenuPanelName = "subSubMenuItemB1"
     })
     menuStructure.menuPanels["subMenuMenuItem2"].menuItems[2] = uiMenuView:insertRow("subMenuMenuItem2", {
         text = "MI2.ItemB2",
@@ -78,9 +82,9 @@ function uiNewFoodButton:init(parentView)
 
     -- Create subSubMenuItemB1 under MI2.ItemB1
     local parentMenuItemB1 = menuStructure.menuPanels["subMenuMenuItem2"].menuItems[1]
-    uiMenuView:createMenuPanel("subSubMenuItemB1", parentMenuItemB1.colorView, parentMenuItemB1, "subMenuMenuItem2")
+    uiMenuView:createMenuPanel("subSubMenuItemB1", parentMenuItemB1.colorView, parentMenuItemB1, "subMenuMenuItem2", 300)
     menuStructure.menuPanels["subSubMenuItemB1"].menuItems[1] = uiMenuView:insertRow("subSubMenuItemB1", {
-        text = "MI2.ItemB1.1",
+        text = "MI2.ItemB1.1 (Third Level Long Text)",
         onClick = function()
             mj:log("Clicked MI2.ItemB1.1")
         end
@@ -94,10 +98,10 @@ function uiNewFoodButton:init(parentView)
 
     -- Create subMenuMenuItem3 and its menuItems
     local parentMenuItem3 = menuStructure.menuPanels["MainMenu"].menuItems[3]
-    uiMenuView:createMenuPanel("subMenuMenuItem3", parentMenuItem3.colorView, parentMenuItem3, "MainMenu")
+    uiMenuView:createMenuPanel("subMenuMenuItem3", parentMenuItem3.colorView, parentMenuItem3, "MainMenu", 300)
     menuStructure.menuPanels["subMenuMenuItem3"].menuItems[1] = uiMenuView:insertRow("subMenuMenuItem3", {
         text = "MI3.ItemC1",
-        submenuPanelName = "subSubMenuItemC1" -- Add a third level submenu
+        submenuPanelName = "subSubMenuItemC1"
     })
     menuStructure.menuPanels["subMenuMenuItem3"].menuItems[2] = uiMenuView:insertRow("subMenuMenuItem3", {
         text = "MI3.ItemC2",
@@ -114,7 +118,7 @@ function uiNewFoodButton:init(parentView)
 
     -- Create subSubMenuItemC1 under MI3.ItemC1
     local parentMenuItemC1 = menuStructure.menuPanels["subMenuMenuItem3"].menuItems[1]
-    uiMenuView:createMenuPanel("subSubMenuItemC1", parentMenuItemC1.colorView, parentMenuItemC1, "subMenuMenuItem3")
+    uiMenuView:createMenuPanel("subSubMenuItemC1", parentMenuItemC1.colorView, parentMenuItemC1, "subMenuMenuItem3", 300)
     menuStructure.menuPanels["subSubMenuItemC1"].menuItems[1] = uiMenuView:insertRow("subSubMenuItemC1", {
         text = "MI3.ItemC1.1",
         onClick = function()
@@ -143,6 +147,9 @@ function uiNewFoodButton:init(parentView)
                     panel.menuPanelView:removeSubview(menuItem.colorView)
                     if menuItem.iconPlayView then
                         panel.menuPanelView:removeSubview(menuItem.iconPlayView)
+                    end
+                    if menuItem.gameObjectView then
+                        panel.menuPanelView:removeSubview(menuItem.gameObjectView)
                     end
                 end
                 panel.menuItems = {}
