@@ -58,14 +58,14 @@ end
 -- Helper function to calculate total food value for an item
 local function calculateItemFoodValue(item)
     if not item.resourceType.foodValue then
-        mj:log("No foodValue for item: " .. tostring(item.resourceType.key) .. ", returning 0")
+        --mj:log("No foodValue for item: " .. tostring(item.resourceType.key) .. ", returning 0")
         return 0
     end
     local foodPortionCount = item.resourceType.foodPortionCount or 1
     local foodValue = item.resourceType.foodValue
     local storedCount = item.storedCount or 0
     local calculatedValue = foodPortionCount * foodValue * storedCount
-    mj:log("Calculated food value for item: " .. tostring(item.resourceType.key) .. ", foodValue = " .. tostring(foodValue) .. ", foodPortionCount = " .. tostring(foodPortionCount) .. ", storedCount = " .. tostring(storedCount) .. ", total = " .. tostring(calculatedValue))
+    --mj:log("Calculated food value for item: " .. tostring(item.resourceType.key) .. ", foodValue = " .. tostring(foodValue) .. ", foodPortionCount = " .. tostring(foodPortionCount) .. ", storedCount = " .. tostring(storedCount) .. ", total = " .. tostring(calculatedValue))
     return calculatedValue
 end
 
@@ -104,7 +104,7 @@ function foodUI:fetchFoodItems(callback)
                 item.foodValue = calculateItemFoodValue(item)
                 totalFoodValue = totalFoodValue + item.foodValue
                 table.insert(foodListItems, item)
-                mj:log("Fetched item: " .. tostring(resourceType.key) .. ", storedCount = " .. tostring(storedCount) .. ", foodValue = " .. tostring(item.foodValue) .. ", hasStorageAreas = " .. tostring(next(storageAreas) ~= nil))
+                --mj:log("Fetched item: " .. tostring(resourceType.key) .. ", storedCount = " .. tostring(storedCount) .. ", foodValue = " .. tostring(item.foodValue) .. ", hasStorageAreas = " .. tostring(next(storageAreas) ~= nil))
             end
         end
 
@@ -115,7 +115,7 @@ end
 -- Populate the storage submenu for a specific item
 local function populateStorageSubmenu(menuStructure, storageMenuPanelName, storageAreas, playerPos, parentMenuItem, parentMenuName)
     if not storageAreas or type(storageAreas) ~= "table" then
-        mj:log("No storage areas for item, skipping submenu creation")
+        --mj:log("No storage areas for item, skipping submenu creation")
         return
     end
 
@@ -129,7 +129,7 @@ local function populateStorageSubmenu(menuStructure, storageMenuPanelName, stora
     end
 
     if not hasValidStorage then
-        mj:log("No valid storage areas found, skipping submenu creation for panel: " .. tostring(storageMenuPanelName))
+        --mj:log("No valid storage areas found, skipping submenu creation for panel: " .. tostring(storageMenuPanelName))
         return
     end
 
@@ -170,7 +170,7 @@ local function populateStorageSubmenu(menuStructure, storageMenuPanelName, stora
             teleportIcon.masksEvents = false
             teleportIcon.hidden = false
             teleportIcon.alpha = 1.0
-            mj:log("Added teleport icon for storage item: " .. tostring(storageItemText) .. ", modelIndex = " .. tostring(modelIndex) .. ", baseOffset = " .. tostring(teleportIcon.baseOffset) .. ", hidden = " .. tostring(teleportIcon.hidden) .. ", parent colorView.hidden = " .. tostring(storageMenuItem.colorView.hidden))
+            --mj:log("Added teleport icon for storage item: " .. tostring(storageItemText) .. ", modelIndex = " .. tostring(modelIndex) .. ", baseOffset = " .. tostring(teleportIcon.baseOffset) .. ", hidden = " .. tostring(teleportIcon.hidden) .. ", parent colorView.hidden = " .. tostring(storageMenuItem.colorView.hidden))
         end
     end
 end
@@ -351,7 +351,7 @@ function foodUI:init(gameUI, world, parentView, relativeView)
     foodIcon.masksEvents = false
     foodIcon.hidden = false
     foodIcon.alpha = 1.0
-    mj:log("Added food icon to button: modelIndex = " .. tostring(foodIconModelIndex) .. ", baseOffset = " .. tostring(foodIcon.baseOffset) .. ", hidden = " .. tostring(foodIcon.hidden))
+    --mj:log("Added food icon to button: modelIndex = " .. tostring(foodIconModelIndex) .. ", baseOffset = " .. tostring(foodIcon.baseOffset) .. ", hidden = " .. tostring(foodIcon.hidden))
 
     -- Food Info Text View
     local foodInfoTextView = TextView.new(foodButton)
@@ -361,7 +361,7 @@ function foodUI:init(gameUI, world, parentView, relativeView)
     foodInfoTextView.baseOffset = vec3(10, -5, 5) -- Adjusted x-offset to 2 for better alignment, z=5
     foodInfoTextView.color = vec4(0.6, 1.0, 0.6, 1.0) -- Green color
     foodInfoTextView.hidden = false
-    mj:log("Added food info text: baseOffset = " .. tostring(foodInfoTextView.baseOffset) .. ", hidden = " .. tostring(foodInfoTextView.hidden))
+    --mj:log("Added food info text: baseOffset = " .. tostring(foodInfoTextView.baseOffset) .. ", hidden = " .. tostring(foodInfoTextView.hidden))
 
     -- Function to update the food info text on the button
     local updateTimer = 0.0
