@@ -13,6 +13,7 @@ local compassUI = {}
 local geoPositionPanel = nil
 local temperatureTextView = nil
 
+-- TODO: Make this a configurable option
 local spinCompassNeedle = true -- Set to true for the compass needle to spin, false for the background to spin
 
 -- Translate the player pre-render position to a latitude, longitude, elevation and bearing

@@ -20,7 +20,7 @@ local menuPanelsUI = mjrequire "timeControlPlus/ui/menuPanelsUI"
 local compassUI = mjrequire "timeControlPlus/ui/compassUI"
 local populationUI = mjrequire "timeControlPlus/ui/populationUI"
 local timeUI = mjrequire "timeControlPlus/ui/timeUI"
-local uiFoodButton = mjrequire "timeControlPlus/ui/uiFoodButton"
+local menuFood = mjrequire "timeControlPlus/ui/menuFood"
 
 -- Initialize globals
 local timeControls = {}
@@ -104,9 +104,6 @@ end
 -- Starting point and initialization
 function timeControls:init(gameUI, world)
 
-    -- Create the timeUI (bottom right corner of the screen)
-    timeUI:initializeTimeUI(gameUI, world)
-
     -- Create the top menu bars
     leftMenuPanel = menuPanelsUI:initLeftMenuPanel(gameUI.view)
     rightMenuPanel = menuPanelsUI:initRightMenuPanel(gameUI.view)
@@ -114,8 +111,11 @@ function timeControls:init(gameUI, world)
     -- Setup the compass
     compassUI:init(gameUI, world)
 
+    -- Create the timeUI (bottom right corner of the screen)
+    timeUI:initializeTimeUI(gameUI, world)
+    
     -- Create the food menu
-    foodMenu = uiFoodButton:init(gameUI, world, leftMenuPanel, leftMenuPanel)
+    foodMenu = menuFood:init(gameUI, world, leftMenuPanel, leftMenuPanel)
 
     -- Setup the population button
     populationUI:init(world, leftMenuPanel, foodMenu, panels)

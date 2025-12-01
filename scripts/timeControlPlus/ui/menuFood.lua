@@ -4,84 +4,70 @@ local vec3 = mjm.vec3
 local vec2 = mjm.vec2
 local vec4 = mjm.vec4
 local model = mjrequire "common/model"
-local material = mjrequire "common/material"
-local uiStandardButton = mjrequire "mainThread/ui/uiCommon/uiStandardButton"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
-local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 local resource = mjrequire "common/resource"
 local gameObject = mjrequire "common/gameObject"
 local logicInterface = mjrequire "mainThread/logicInterface"
-local foodConfig = mjrequire "timeControlPlus/ui/foodConfig"
 local utilities = mjrequire "timeControlPlus/common/utilities"
 local playerSapiens = mjrequire "mainThread/playerSapiens"
 local need = mjrequire "common/need"
 local localPlayer = mjrequire "mainThread/localPlayer"
 local uiMenuView = mjrequire "timeControlPlus/ui/uicommon/uiMenuView"
+local foodConfig = mjrequire "timeControlPlus/ui/foodConfig"
 
 -- Initialize module
-local foodUI = {}
+local menuFood = {}
 
 -- Game state objects
 local localWorld = nil
 local localGameUI = nil
 
 -- Constants for UI
-local updateInterval = 5.0 -- Update interval for food button title (in seconds)
+local updateInterval = 2.0 -- Unified 2-second update interval for both button text and menu
 local foodButtonWidth = 80.0 -- Width for the Food button
 local foodButtonHeight = 40.0 -- Height for the Food button
 local foodPanelWidth = 300.0 -- Width for the food panel
-local toolTipOffset = vec3(0, -10, 0)
 
 -- Helper function to calculate the total hunger demand of the tribe
 local function calculateTribeHungerDemand()
     -- Get the list of Sapiens in the tribe
     local sapienList = playerSapiens:getDistanceOrderedSapienList(localPlayer:getNormalModePos())
     
-    -- Sum up the hunger values and log each Sapien's hunger
+    -- Sum up the hunger values
     local totalHungerDemand = 0.0
     for _, sapienInfo in ipairs(sapienList) do
         local sapien = sapienInfo.sapien
         local sharedState = sapien.sharedState
-        -- Access the food need value (ranges from 0.0 to 1.0)
         local hungerValue = sharedState.needs[need.types.food.index] or 0.0
-        mj:log("Sapien:", sharedState.name, "Hunger value:", hungerValue)
         totalHungerDemand = totalHungerDemand + hungerValue
     end
     
-    -- Log the total for debugging
-    mj:log("calculateTribeHungerDemand: Total hunger demand:", totalHungerDemand)
-    
-    -- Return the total (rounded to the nearest integer for display)
     return math.floor(totalHungerDemand + 0.5)
 end
 
 -- Helper function to calculate total food value for an item
 local function calculateItemFoodValue(item)
     if not item.resourceType.foodValue then
-        --mj:log("No foodValue for item: " .. tostring(item.resourceType.key) .. ", returning 0")
         return 0
     end
     local foodPortionCount = item.resourceType.foodPortionCount or 1
     local foodValue = item.resourceType.foodValue
     local storedCount = item.storedCount or 0
     local calculatedValue = foodPortionCount * foodValue * storedCount
-    --mj:log("Calculated food value for item: " .. tostring(item.resourceType.key) .. ", foodValue = " .. tostring(foodValue) .. ", foodPortionCount = " .. tostring(foodPortionCount) .. ", storedCount = " .. tostring(storedCount) .. ", total = " .. tostring(calculatedValue))
     return calculatedValue
 end
 
 -- Fetch food items (with foodValue) and non-food items (from foodConfig.foods)
-function foodUI:fetchFoodItems(callback)
+function menuFood:fetchFoodItems(callback)
     localWorld:getResourceObjectCountsFromServer(function(resourceData)
         local foodListItems = {}
         local totalFoodValue = 0
         local foodConfigKeys = {}
 
-        -- Build a lookup table of foodConfig keys
         for foodKey, _ in pairs(foodConfig.foods) do
             foodConfigKeys[foodKey] = true
         end
 
-        -- Iterate through all resource types
         for i, resourceType in ipairs(resource.alphabeticallyOrderedTypes) do
             local gameObjectTypes = gameObject.gameObjectTypeIndexesByResourceTypeIndex[resourceType.index]
             local storedCount = 0
@@ -90,7 +76,6 @@ function foodUI:fetchFoodItems(callback)
                 storedCount = storedCount + thisCount
             end
 
-            -- Include items that either have a foodValue or are in foodConfig.foods
             local hasFoodValue = resourceType.foodValue ~= nil
             local isInFoodConfig = foodConfigKeys[resourceType.key] ~= nil
             if hasFoodValue or isInFoodConfig then
@@ -104,7 +89,6 @@ function foodUI:fetchFoodItems(callback)
                 item.foodValue = calculateItemFoodValue(item)
                 totalFoodValue = totalFoodValue + item.foodValue
                 table.insert(foodListItems, item)
-                --mj:log("Fetched item: " .. tostring(resourceType.key) .. ", storedCount = " .. tostring(storedCount) .. ", foodValue = " .. tostring(item.foodValue) .. ", hasStorageAreas = " .. tostring(next(storageAreas) ~= nil))
             end
         end
 
@@ -115,11 +99,9 @@ end
 -- Populate the storage submenu for a specific item
 local function populateStorageSubmenu(menuStructure, storageMenuPanelName, storageAreas, playerPos, parentMenuItem, parentMenuName)
     if not storageAreas or type(storageAreas) ~= "table" then
-        --mj:log("No storage areas for item, skipping submenu creation")
         return
     end
 
-    -- Check if there are any valid storage areas
     local hasValidStorage = false
     for storageID, storageInfo in pairs(storageAreas) do
         if storageInfo and storageInfo.pos and storageInfo.count then
@@ -129,7 +111,6 @@ local function populateStorageSubmenu(menuStructure, storageMenuPanelName, stora
     end
 
     if not hasValidStorage then
-        --mj:log("No valid storage areas found, skipping submenu creation for panel: " .. tostring(storageMenuPanelName))
         return
     end
 
@@ -143,14 +124,12 @@ local function populateStorageSubmenu(menuStructure, storageMenuPanelName, stora
             local storageMenuItem = uiMenuView:insertRow(storageMenuPanelName, {
                 text = storageItemText,
                 onClick = function()
-                    -- Retrieve the object and follow it, falling back to teleport if not found
                     logicInterface:callLogicThreadFunction("retrieveObject", storageID, function(result)
                         if result and result.found then
                             localGameUI:followObject(result, false, {dismissAnyUI = true, showInspectUI = true})
                         else
                             localGameUI:teleportToLookAtPos(storageInfo.pos)
                         end
-                        -- Hide all panels after teleporting/following
                         for _, panel in pairs(menuStructure.menuPanels) do
                             panel.menuPanelView.hidden = true
                         end
@@ -159,18 +138,16 @@ local function populateStorageSubmenu(menuStructure, storageMenuPanelName, stora
             })
             rowIndex = rowIndex + 1
 
-            -- Add teleport icon (icon_inspect) to the storage menu item
             local teleportIcon = ModelView.new(storageMenuItem.colorView)
             local modelIndex = model:modelIndexForName("icon_inspect")
             teleportIcon:setModel(modelIndex)
             teleportIcon.relativePosition = ViewPosition(MJPositionInnerRight, MJPositionCenter)
-            teleportIcon.baseOffset = vec3(0, 0, 5) -- z=5 to be above background
+            teleportIcon.baseOffset = vec3(0, 0, 5)
             teleportIcon.scale3D = vec3(10, 10, 10)
             teleportIcon.size = vec2(20, 20)
             teleportIcon.masksEvents = false
             teleportIcon.hidden = false
             teleportIcon.alpha = 1.0
-            --mj:log("Added teleport icon for storage item: " .. tostring(storageItemText) .. ", modelIndex = " .. tostring(modelIndex) .. ", baseOffset = " .. tostring(teleportIcon.baseOffset) .. ", hidden = " .. tostring(teleportIcon.hidden) .. ", parent colorView.hidden = " .. tostring(storageMenuItem.colorView.hidden))
         end
     end
 end
@@ -181,10 +158,8 @@ local function populateCategorySubmenu(menuStructure, categoryMenuPanelName, cat
         return
     end
 
-    -- Create the category submenu panel
     uiMenuView:createMenuPanel(categoryMenuPanelName, parentMenuItem.colorView, parentMenuItem, parentMenuName, foodPanelWidth)
 
-    -- Populate items in the category submenu
     for i, item in ipairs(items) do
         local itemText = string.format("%s (%d, %.1f)", item.resourceType.plural, item.storedCount, item.foodValue)
         local storageMenuPanelName = categoryMenuPanelName .. "_Storage_" .. i
@@ -204,39 +179,52 @@ end
 
 -- Populate the main food menu
 local function populateFoodMenu(menuStructure, updateFoodInfoTextCallback)
-    -- Calculate the tribe's total hunger demand
+    local mainMenuPanel = menuStructure.menuPanels["MainMenu"]
+    if mainMenuPanel then
+        mainMenuPanel.menuItems = {}
+    else
+        menuStructure.menuPanels = {}
+        menuStructure.menuPanels["MainMenu"] = uiMenuView:createMenuPanel("MainMenu", menuStructure.button, nil, nil, foodPanelWidth)
+        mainMenuPanel = menuStructure.menuPanels["MainMenu"]
+    end
+
+    for _, panel in pairs(menuStructure.menuPanels) do
+        panel.menuPanelView.hidden = true
+    end
+
     local tribeFoodDemand = calculateTribeHungerDemand()
 
-    -- Fetch food items
-    foodUI:fetchFoodItems(function(foodListItems, totalFoodValue)
-        -- Update the button's food info text
+    menuFood:fetchFoodItems(function(foodListItems, totalFoodValue)
         if updateFoodInfoTextCallback then
             updateFoodInfoTextCallback(totalFoodValue)
         end
 
-        -- Clear existing menu items
-        for _, panel in pairs(menuStructure.menuPanels) do
-            for _, menuItem in ipairs(panel.menuItems) do
-                panel.menuPanelView:removeSubview(menuItem.colorView)
-                if menuItem.iconPlayView then
-                    panel.menuPanelView:removeSubview(menuItem.iconPlayView)
+        for panelName, panel in pairs(menuStructure.menuPanels) do
+            if panelName ~= "MainMenu" then
+                for _, menuItem in ipairs(panel.menuItems) do
+                    panel.menuPanelView:removeSubview(menuItem.colorView)
+                    if menuItem.iconPlayView then
+                        panel.menuPanelView:removeSubview(menuItem.iconPlayView)
+                    end
+                    if menuItem.gameObjectView then
+                        panel.menuPanelView:removeSubview(menuItem.gameObjectView)
+                    end
                 end
-                if menuItem.gameObjectView then
-                    panel.menuPanelView:removeSubview(menuItem.gameObjectView)
-                end
+                panel.menuItems = {}
             end
-            panel.menuItems = {}
         end
-        menuStructure.menuPanels = {}
-        menuStructure.menuPanels["MainMenu"] = uiMenuView:createMenuPanel("MainMenu", menuStructure.button, nil, nil, foodPanelWidth)
 
-        -- Add metrics row
-        uiMenuView:insertRow("MainMenu", {
-            text = "Available Food Units (u): " .. totalFoodValue .. "\nCurrent Food Demand: " .. tribeFoodDemand,
-            useMetricsHeight = true
-        })
+        if #mainMenuPanel.menuItems == 0 or mainMenuPanel.menuItems[1].textView.text ~= ("Available Food Units (u): " .. totalFoodValue .. "\nCurrent Food Demand: " .. tribeFoodDemand) then
+            for i = #mainMenuPanel.menuItems, 1, -1 do
+                mainMenuPanel.menuPanelView:removeSubview(mainMenuPanel.menuItems[i].colorView)
+                table.remove(mainMenuPanel.menuItems, i)
+            end
+            uiMenuView:insertRow("MainMenu", {
+                text = "Available Food Units (u): " .. totalFoodValue .. "\nCurrent Food Demand: " .. tribeFoodDemand,
+                useMetricsHeight = true
+            })
+        end
 
-        -- Group items by category
         local groupedItems = {}
         for _, category in ipairs(foodConfig.categoryOrder) do
             groupedItems[category] = {}
@@ -248,7 +236,6 @@ local function populateFoodMenu(menuStructure, updateFoodInfoTextCallback)
             table.insert(groupedItems[category], item)
         end
 
-        -- Render categorized submenus
         local rowIndex = 2
         for _, category in ipairs(foodConfig.categoryOrder) do
             if #groupedItems[category] > 0 then
@@ -281,18 +268,30 @@ local function populateFoodMenu(menuStructure, updateFoodInfoTextCallback)
                     categoryDisplayName = category
                 end
                 local categoryMenuPanelName = "Category_" .. category
-                menuStructure.menuPanels["MainMenu"].menuItems[rowIndex] = uiMenuView:insertRow("MainMenu", {
-                    text = categoryDisplayName .. ": " .. categoryFoodValue .. " u",
-                    submenuPanelName = categoryFoodValue > 0 and categoryMenuPanelName or nil,
-                    gameObjectTypeIndex = resourceType and resourceType.displayGameObjectTypeIndex or nil
-                })
-                if categoryFoodValue > 0 then
-                    populateCategorySubmenu(menuStructure, categoryMenuPanelName, category, groupedItems[category], menuStructure.menuPanels["MainMenu"].menuItems[rowIndex], "MainMenu")
+                local existingItem = mainMenuPanel.menuItems[rowIndex]
+                if not existingItem or existingItem.textView.text ~= (categoryDisplayName .. ": " .. categoryFoodValue .. " u") then
+                    if existingItem then
+                        mainMenuPanel.menuPanelView:removeSubview(existingItem.colorView)
+                        table.remove(mainMenuPanel.menuItems, rowIndex)
+                    end
+                    mainMenuPanel.menuItems[rowIndex] = uiMenuView:insertRow("MainMenu", {
+                        text = categoryDisplayName .. ": " .. categoryFoodValue .. " u",
+                        submenuPanelName = categoryFoodValue > 0 and categoryMenuPanelName or nil,
+                        gameObjectTypeIndex = resourceType and resourceType.displayGameObjectTypeIndex or nil
+                    })
+                    if categoryFoodValue > 0 then
+                        populateCategorySubmenu(menuStructure, categoryMenuPanelName, category, groupedItems[category], mainMenuPanel.menuItems[rowIndex], "MainMenu")
+                    end
+                elseif categoryFoodValue > 0 and not existingItem.submenuPanelName then
+                    existingItem.submenuPanelName = categoryMenuPanelName
+                    populateCategorySubmenu(menuStructure, categoryMenuPanelName, category, groupedItems[category], existingItem, "MainMenu")
                 end
                 rowIndex = rowIndex + 1
+            elseif mainMenuPanel.menuItems[rowIndex] and mainMenuPanel.menuItems[rowIndex].submenuPanelName then
+                mainMenuPanel.menuPanelView:removeSubview(mainMenuPanel.menuItems[rowIndex].colorView)
+                table.remove(mainMenuPanel.menuItems, rowIndex)
             end
         end
-        -- Render "Other Foods" if it has items
         if #groupedItems.otherFoods > 0 then
             local otherFoodsValue = 0
             for _, item in ipairs(groupedItems.otherFoods) do
@@ -300,27 +299,41 @@ local function populateFoodMenu(menuStructure, updateFoodInfoTextCallback)
             end
             local resourceType = #groupedItems.otherFoods > 0 and groupedItems.otherFoods[1].resourceType or nil
             local categoryMenuPanelName = "Category_otherFoods"
-            menuStructure.menuPanels["MainMenu"].menuItems[rowIndex] = uiMenuView:insertRow("MainMenu", {
-                text = "Other Food: " .. otherFoodsValue .. " u",
-                submenuPanelName = otherFoodsValue > 0 and categoryMenuPanelName or nil,
-                gameObjectTypeIndex = resourceType and resourceType.displayGameObjectTypeIndex or nil
-            })
-            if otherFoodsValue > 0 then
-                populateCategorySubmenu(menuStructure, categoryMenuPanelName, "otherFoods", groupedItems.otherFoods, menuStructure.menuPanels["MainMenu"].menuItems[rowIndex], "MainMenu")
+            local existingItem = mainMenuPanel.menuItems[rowIndex]
+            if not existingItem or existingItem.textView.text ~= ("Other Food: " .. otherFoodsValue .. " u") then
+                if existingItem then
+                    mainMenuPanel.menuPanelView:removeSubview(existingItem.colorView)
+                    table.remove(mainMenuPanel.menuItems, rowIndex)
+                end
+                mainMenuPanel.menuItems[rowIndex] = uiMenuView:insertRow("MainMenu", {
+                    text = "Other Food: " .. otherFoodsValue .. " u",
+                    submenuPanelName = otherFoodsValue > 0 and categoryMenuPanelName or nil,
+                    gameObjectTypeIndex = resourceType and resourceType.displayGameObjectTypeIndex or nil
+                })
+                if otherFoodsValue > 0 then
+                    populateCategorySubmenu(menuStructure, categoryMenuPanelName, "otherFoods", groupedItems.otherFoods, mainMenuPanel.menuItems[rowIndex], "MainMenu")
+                end
+            elseif otherFoodsValue > 0 and not existingItem.submenuPanelName then
+                existingItem.submenuPanelName = categoryMenuPanelName
+                populateCategorySubmenu(menuStructure, categoryMenuPanelName, "otherFoods", groupedItems.otherFoods, existingItem, "MainMenu")
             end
+        elseif mainMenuPanel.menuItems[rowIndex] and mainMenuPanel.menuItems[rowIndex].submenuPanelName then
+            mainMenuPanel.menuPanelView:removeSubview(mainMenuPanel.menuItems[rowIndex].colorView)
+            table.remove(mainMenuPanel.menuItems, rowIndex)
         end
 
-        -- Reinitialize hover events
         uiMenuView:initialize()
+        if not menuStructure.isMainMenuVisible then
+            mainMenuPanel.menuPanelView.hidden = true
+        end
     end)
 end
 
 -- Initialize the module and create the Food UI button and panel
-function foodUI:init(gameUI, world, parentView, relativeView)
+function menuFood:init(gameUI, world, parentView, relativeView)
     localWorld = world
     localGameUI = gameUI
 
-    -- Create the menu structure with the button
     local foodButtonSize = vec2(foodButtonWidth, foodButtonHeight)
     local foodButtonBaseOffset = vec3(50, -3, 0)
     local menuStructure = uiMenuView:create(
@@ -332,12 +345,10 @@ function foodUI:init(gameUI, world, parentView, relativeView)
         foodPanelWidth
     )
 
-    -- Use the button provided by uiMenuView
     local foodButton = menuStructure.button
 
-    -- Food icon
     local foodIconModel = "icon_food"
-    local foodIconBaseOffset = vec3(10, -5, 5) -- z=5 to be above background
+    local foodIconBaseOffset = vec3(10, -5, 5)
     local iconHalfSize = 9
     local foodIconScale3D = vec3(iconHalfSize, iconHalfSize, iconHalfSize)
     local foodIconSize = vec2(9, 9) * 2.0
@@ -351,42 +362,52 @@ function foodUI:init(gameUI, world, parentView, relativeView)
     foodIcon.masksEvents = false
     foodIcon.hidden = false
     foodIcon.alpha = 1.0
-    --mj:log("Added food icon to button: modelIndex = " .. tostring(foodIconModelIndex) .. ", baseOffset = " .. tostring(foodIcon.baseOffset) .. ", hidden = " .. tostring(foodIcon.hidden))
 
-    -- Food Info Text View
     local foodInfoTextView = TextView.new(foodButton)
     foodInfoTextView.font = Font(uiCommon.fontName, 14)
     foodInfoTextView.relativeView = foodIcon    
     foodInfoTextView.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionCenter)
-    foodInfoTextView.baseOffset = vec3(10, -5, 5) -- Adjusted x-offset to 2 for better alignment, z=5
-    foodInfoTextView.color = vec4(0.6, 1.0, 0.6, 1.0) -- Green color
+    foodInfoTextView.baseOffset = vec3(10, -5, 5)
+    foodInfoTextView.color = vec4(0.6, 1.0, 0.6, 1.0)
     foodInfoTextView.hidden = false
-    --mj:log("Added food info text: baseOffset = " .. tostring(foodInfoTextView.baseOffset) .. ", hidden = " .. tostring(foodInfoTextView.hidden))
 
-    -- Function to update the food info text on the button
-    local updateTimer = 0.0
     local function updateFoodInfoText(totalFoodValue)
         foodInfoTextView.text = tostring(totalFoodValue)
     end
 
-    -- Populate Food Menu initially
+    menuStructure.userData = menuStructure.userData or {}
+    menuStructure.userData.foodInfoTextView = foodInfoTextView
+    menuStructure.userData.updateFoodInfoTextCallback = updateFoodInfoText
+    menuStructure.userData.updateTimer = 0
+
     populateFoodMenu(menuStructure, updateFoodInfoText)
 
-    -- Add update function to refresh the food info text every 5 seconds
     foodInfoTextView.update = function(dt)
-        updateTimer = updateTimer + dt
-        if updateTimer >= updateInterval then
-            foodUI:fetchFoodItems(function(_, totalFoodValue)
-                updateFoodInfoText(totalFoodValue)
+        local submenuOpen = false
+        for _, panel in pairs(menuStructure.menuPanels) do
+            if panel.positionHierarchy > 0 and not panel.menuPanelView.hidden then
+                submenuOpen = true
+                break
+            end
+        end
+
+        menuStructure.userData.updateTimer = (menuStructure.userData.updateTimer or 0) + dt
+        if menuStructure.userData.updateTimer >= updateInterval and not submenuOpen then
+            menuFood:fetchFoodItems(function(foodListItems, totalFoodValue)
+                if menuStructure.userData.updateFoodInfoTextCallback then
+                    menuStructure.userData.updateFoodInfoTextCallback(totalFoodValue)
+                end
+                if menuStructure.isMainMenuVisible then
+                    populateFoodMenu(menuStructure, menuStructure.userData.updateFoodInfoTextCallback)
+                end
             end)
-            updateTimer = 0.0
+            menuStructure.userData.updateTimer = 0
         end
     end
 
-    -- Store panel in foodButton userData
     foodButton.userData.panel = menuStructure.menuPanels["MainMenu"].menuPanelView
 
     return foodButton, updateFoodInfoText
 end
 
-return foodUI
+return menuFood
