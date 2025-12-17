@@ -1,6 +1,3 @@
-local notificationsUI = mjrequire "mainThread/ui/notificationsUI"
-local notification = mjrequire "common/notification"
-local localPlayer = mjrequire "mainThread/localPlayer"
 local mjm = mjrequire "common/mjm"
 local vec3 = mjm.vec3
 

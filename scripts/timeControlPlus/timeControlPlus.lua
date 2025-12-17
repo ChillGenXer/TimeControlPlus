@@ -21,6 +21,7 @@ local compassUI = mjrequire "timeControlPlus/ui/compassUI"
 local populationUI = mjrequire "timeControlPlus/ui/populationUI"
 local timeUI = mjrequire "timeControlPlus/ui/timeUI"
 local menuFood = mjrequire "timeControlPlus/ui/menuFood"
+local pauseUI = mjrequire "mainThread/ui/pauseUI"
 
 -- Initialize globals
 local timeControls = {}
@@ -33,12 +34,20 @@ local leftMenuPanel = nil
 local rightMenuPanel = nil -- New container for right-side elements
 local connectionAlertIcon = nil
 local foodMenu = nil
+local function setPausedOverlay(newPaused)
+    if newPaused then
+        pauseUI:show()
+    else
+        pauseUI:hide()
+    end
+end
 
 -- MajicJungle Functions
 
 -- MajicJungle: Set the local speed preference based on server vote (Redirect)
 function timeControls:updateLocalSpeedPreference(speedMultiplierIndex)
     timeUI:updateLocalSpeedPreference(speedMultiplierIndex)
+    setPausedOverlay(speedMultiplierIndex == 0)
 end
 
 -- MajicJungle: Provide the server with the local speed preference
@@ -61,6 +70,13 @@ end
 -- MajicJungle: Disables FF if the server doesn't allow it.
 function timeControls:setFastForwardDisabledByServer(newIsThrottled)
     timeUI:setFastForwardDisabledByServer(newIsThrottled)
+end
+
+-- MajicJungle (New): Update population label (new-game code expectation)
+function timeControls:setPopulation(newPopulation)
+    if populationUI.setPopulation then
+        populationUI:setPopulation(newPopulation)
+    end
 end
 
 --MajicJungle: Game sends a ping value to drive display of connectionAlertIcon

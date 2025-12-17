@@ -3,3 +3,6 @@ resourcelistsample.lua
 samples/*
 test.lua
 timeControls_5.2.2_vanilla.lua
+new-game-code/*
+old-game-code/*
+AI_CONTEXT/*

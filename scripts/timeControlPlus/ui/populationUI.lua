@@ -2,7 +2,6 @@ local mjm = mjrequire "common/mjm"
 local vec3 = mjm.vec3
 local vec2 = mjm.vec2
 local vec4 = mjm.vec4
-local playerSapiens = mjrequire "mainThread/playerSapiens"
 local sapienConstants = mjrequire "common/sapienConstants"
 local uiAnimation = mjrequire "mainThread/ui/uiAnimation"
 local uiScrollView = mjrequire "mainThread/ui/uiCommon/uiScrollView"
@@ -14,6 +13,21 @@ local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 
 local populationUI = {}
 local populationPanel = nil
+local populationInfoView = nil
+local playerSapiens = nil
+
+local function getPlayerSapiens()
+    if playerSapiens then
+        return playerSapiens
+    end
+
+    local ok, result = pcall(mjrequire, "mainThread/playerSapiens")
+    if ok then
+        playerSapiens = result
+    end
+
+    return playerSapiens
+end
 
 -- Function to get population counts and representative sapiens for each category
 local function getPopulationData(world)
@@ -29,12 +43,17 @@ local function getPopulationData(world)
         femaleElders = { count = 0, representative = nil }
     }
 
+    local playerSapiensRef = getPlayerSapiens()
+    if not playerSapiensRef then
+        return populationData
+    end
+
     -- Get total population
-    populationData.totalPopulation = playerSapiens:getPopulationCountIncludingBabies()
+    populationData.totalPopulation = playerSapiensRef:getPopulationCountIncludingBabies()
 
     -- Get the list of sapiens, passing the player's position
     local playerPos = world:getRealPlayerHeadPos()
-    local sapiensList = playerSapiens:getDistanceOrderedSapienList(playerPos)
+    local sapiensList = playerSapiensRef:getDistanceOrderedSapienList(playerPos)
 
     -- Iterate through sapiens to categorize them
     for _, sapienInfo in ipairs(sapiensList) do
@@ -219,7 +238,7 @@ function populationUI:init(world, parentView, relativeView, panels)
     populationIcon.size = populationIconSize
     populationIcon.masksEvents = false
     -- Population Menu Main Info
-    local populationInfoView = TextView.new(populationButton)
+    populationInfoView = TextView.new(populationButton)
     populationInfoView.font = Font(uiCommon.fontName, 14)
     populationInfoView.relativePosition = ViewPosition(MJPositionOuterRight, MJPositionCenter)
     populationInfoView.relativeView = populationIcon
@@ -318,6 +337,12 @@ function populationUI:init(world, parentView, relativeView, panels)
         end
     end)
 
+end
+
+function populationUI:setPopulation(newPopulation)
+    if populationInfoView and newPopulation then
+        populationInfoView.text = tostring(newPopulation)
+    end
 end
 
 function populationUI:showPanel()

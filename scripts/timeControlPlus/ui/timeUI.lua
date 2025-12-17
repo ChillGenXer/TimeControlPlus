@@ -15,6 +15,7 @@ local gameConstants = mjrequire "common/gameConstants"
 local gameObject = mjrequire "common/gameObject"
 local notification = mjrequire "common/notification"
 local locale = mjrequire "common/locale"
+local pauseUI = mjrequire "mainThread/ui/pauseUI"
 
 local buttonsBySpeedIndex = {}
 local currentServerSpeedIndex = nil
@@ -108,6 +109,11 @@ function timeUI:updateLocalSpeedPreference(speedMultiplierIndex)
 
         local button = buttonsBySpeedIndex[currentLocalSpeedIndex]
         uiStandardButton:setSecondarySelected(button, true)
+        if speedMultiplierIndex == 0 then
+            pauseUI:show()
+        else
+            pauseUI:hide()
+        end
     end
 end
 
@@ -148,6 +154,11 @@ local function serverSpeedMultiplierChanged(speedMultiplier, speedMultiplierInde
 
         local button = buttonsBySpeedIndex[currentServerSpeedIndex]
         uiStandardButton:setSelected(button, true)
+        if speedMultiplierIndex == 0 then
+            pauseUI:show()
+        else
+            pauseUI:hide()
+        end
     end
 end
 

@@ -7,11 +7,8 @@ local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local resource = mjrequire "common/resource"
 local gameObject = mjrequire "common/gameObject"
-local logicInterface = mjrequire "mainThread/logicInterface"
 local utilities = mjrequire "timeControlPlus/common/utilities"
-local playerSapiens = mjrequire "mainThread/playerSapiens"
 local need = mjrequire "common/need"
-local localPlayer = mjrequire "mainThread/localPlayer"
 local uiMenuView = mjrequire "timeControlPlus/ui/uicommon/uiMenuView"
 local foodConfig = mjrequire "timeControlPlus/ui/foodConfig"
 
@@ -21,6 +18,48 @@ local menuFood = {}
 -- Game state objects
 local localWorld = nil
 local localGameUI = nil
+local playerSapiens = nil
+local logicInterface = nil
+local localPlayer = nil
+
+local function getPlayerSapiens()
+    if playerSapiens then
+        return playerSapiens
+    end
+
+    local ok, result = pcall(mjrequire, "mainThread/playerSapiens")
+    if ok then
+        playerSapiens = result
+    end
+
+    return playerSapiens
+end
+
+local function getLogicInterface()
+    if logicInterface then
+        return logicInterface
+    end
+
+    local ok, result = pcall(mjrequire, "mainThread/logicInterface")
+    if ok then
+        logicInterface = result
+    end
+
+    return logicInterface
+end
+
+local function getLocalPlayer()
+    if localPlayer then
+        return localPlayer
+    end
+
+    local ok, result = pcall(mjrequire, "mainThread/localPlayer")
+    if ok then
+        localPlayer = result
+    end
+
+    return localPlayer
+end
 
 -- Constants for UI
 local updateInterval = 2.0 -- Unified 2-second update interval for both button text and menu
@@ -30,8 +69,17 @@ local foodPanelWidth = 300.0 -- Width for the food panel
 
 -- Helper function to calculate the total hunger demand of the tribe
 local function calculateTribeHungerDemand()
+    local playerSapiensRef = getPlayerSapiens()
+    local localPlayerRef = getLocalPlayer()
+    if not localPlayerRef then
+        return 0
+    end
+    if not playerSapiensRef then
+        return 0
+    end
+
     -- Get the list of Sapiens in the tribe
-    local sapienList = playerSapiens:getDistanceOrderedSapienList(localPlayer:getNormalModePos())
+    local sapienList = playerSapiensRef:getDistanceOrderedSapienList(localPlayerRef:getNormalModePos())
     
     -- Sum up the hunger values
     local totalHungerDemand = 0.0
@@ -124,7 +172,12 @@ local function populateStorageSubmenu(menuStructure, storageMenuPanelName, stora
             local storageMenuItem = uiMenuView:insertRow(storageMenuPanelName, {
                 text = storageItemText,
                 onClick = function()
-                    logicInterface:callLogicThreadFunction("retrieveObject", storageID, function(result)
+                    local logicInterfaceRef = getLogicInterface()
+                    if not logicInterfaceRef then
+                        return
+                    end
+
+                    logicInterfaceRef:callLogicThreadFunction("retrieveObject", storageID, function(result)
                         if result and result.found then
                             localGameUI:followObject(result, false, {dismissAnyUI = true, showInspectUI = true})
                         else
