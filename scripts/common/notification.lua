@@ -11,7 +11,7 @@ and the autumn one in the southern hemisphere.  They are included in the pairs r
 
 typeMaps:insert("notification", notification.types, {
     key = "springStarting",
-    titleFunction = function(notificationInfo)
+    titleFunction = function(userData)
         return "Spring has started."
     end,
     soundTypeIndex = notificationSound.types.springStarting.index,
@@ -20,7 +20,7 @@ typeMaps:insert("notification", notification.types, {
 
 typeMaps:insert("notification", notification.types, {
     key = "summerStarting",
-    titleFunction = function(notificationInfo)
+    titleFunction = function(userData)
         return "Summer has started."
     end,
     soundTypeIndex = notificationSound.types.summerStarting.index,
@@ -29,7 +29,7 @@ typeMaps:insert("notification", notification.types, {
 
 typeMaps:insert("notification", notification.types, {
     key = "autumnStarting",
-    titleFunction = function(notificationInfo)
+    titleFunction = function(userData)
         return "Autumn has started."
     end,
     soundTypeIndex = notificationSound.types.autumnStarting.index,
@@ -38,7 +38,7 @@ typeMaps:insert("notification", notification.types, {
 
 typeMaps:insert("notification", notification.types, {
     key = "winterStarting",
-    titleFunction = function(notificationInfo)
+    titleFunction = function(userData)
         return "Winter has started."
     end,
     soundTypeIndex = notificationSound.types.winterStarting.index,
@@ -47,8 +47,9 @@ typeMaps:insert("notification", notification.types, {
 
 typeMaps:insert("notification", notification.types, {
     key = "newYear",
-    titleFunction = function(notificationInfo)
-        return "Year " .. notificationInfo.currentYear .. " has begun."
+    titleFunction = function(userData)
+        local year = userData and userData.currentYear or "?"
+        return "Year " .. tostring(year) .. " has begun."
     end,
     soundTypeIndex = notificationSound.types.newYear.index,
     displayGroupTypeIndex = notification.displayGroups.standard.index,

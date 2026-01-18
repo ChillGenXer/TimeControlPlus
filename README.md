@@ -1,5 +1,7 @@
 # TimeControlPlus
 
+## Please note this is a temporary version for multiplayer compatibility, a full release will come soon.
+
 A mod for the fantastic colony sim [Sapiens](https://store.steampowered.com/app/1060230/Sapiens/).  This mod adds a new component to the Time Control HUD in the upper left-hand corner of the screen showing the current year, day of the year (1-8), UTC time and current season as an icon.
 
 ## Overview

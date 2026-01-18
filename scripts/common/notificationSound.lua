@@ -9,25 +9,25 @@ function mod:onload(notificationSound)
     typeMaps:insert("notificationSound", notificationSound.types,
         {
             key = "springStarting",
-            path = "percussive1_unused.wav",
+            path = "uncertain1.mp3",
         }
     )
     typeMaps:insert("notificationSound", notificationSound.types,
         {
             key = "summerStarting",
-            path = "percussive1_unused.wav",
+            path = "uncertain1.mp3",
         }
     )       
     typeMaps:insert("notificationSound", notificationSound.types,
         {
             key = "autumnStarting",
-            path = "percussive1_unused.wav",
+            path = "uncertain1.mp3",
         }
     )
     typeMaps:insert("notificationSound", notificationSound.types,
         {
             key = "winterStarting",
-            path = "percussive1_unused.wav",
+            path = "uncertain1.mp3",
         }
     )
     typeMaps:insert("notificationSound", notificationSound.types,
