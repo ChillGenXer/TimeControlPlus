@@ -1,51 +1,64 @@
 # TimeControlPlus
 
-## Please note this is a temporary version for multiplayer compatibility, a full release will come soon.
+A mod for the colony simulation game [Sapiens](https://store.steampowered.com/app/1060230/Sapiens/) that expands the Time Control HUD with useful calendar and seasonal information.
 
-A mod for the fantastic colony sim [Sapiens](https://store.steampowered.com/app/1060230/Sapiens/).  This mod adds a new component to the Time Control HUD in the upper left-hand corner of the screen showing the current year, day of the year (1-8), UTC time and current season as an icon.
+TimeControlPlus displays the current **Year**, **World Time (WT)** and **Season**, while fitting alongside Sapiens' existing time controls.
+
+It supports both current Sapiens release lines:
+
+- **Public Version (0.6.1.3):** TimeControlPlus provides its classic Day display.
+- **public-beta-unstable (0.7.0.2 - Conflict Update):** Sapiens provides its own native Day and Population display, so TimeControlPlus leaves it intact and adds its information alongside it.
 
 ## Overview
 
-First a brief explanation of how time progression works in Sapiens.  The default game year is divided into 4 seasons, with each season having a duration of 2 game days, meaning a game year is 8 game days.  The new control provides the current Year, the current day of the year (day 1-8), world time, as well as a graphical representation of the season. 
+Sapiens has both a world calendar and a local day/night cycle.
 
-When you begin a game, you will not necessarily start on day 1 as there are many factors that are considered: where on the globe you start, time passed once you have selected your world, time of day at the location you start a new world, and others.  The exact spot on the original sundial that a game day changes will be based on the clock marker position when you first started playing a newly generated world.  However the day will change at 00:00 UTC on the mod's digital clock, it just won't line up on the sundial to midnight.
+By default, a game year contains four seasons, with each season lasting two game days for a total of eight days per year. TimeControlPlus reads Sapiens' own world clock and year settings rather than assuming the default values, so the calendar will continue to work correctly if you customize the day or year length in the world's configuration file.
+
+The HUD provides:
+
+- **Year:** the current year in the Sapiens world calendar.
+- **Day:** in the **Public Version (0.6.1.3)**, TimeControlPlus shows the age of your tribe in days, beginning with Day 1. The **public-beta-unstable (0.7.0.2 - Conflict Update)** provides this information natively.
+- **World Time (WT):** a digital representation of the global Sapiens world clock.
+- **Season:** represented by an apple tree that changes appearance as the seasons progress.
+
+World Time is a global game clock, so it should not be confused with the local solar time at your tribe's position on the planet. Depending on where you are located, the sun and sundial will not necessarily line up with `00:00 WT`.
 
 More information about [Time](https://wiki.playsapiens.com/index.php/Time) in Sapiens can be found on the [Sapiens Official Wiki](https://wiki.playsapiens.com).
 
 ## Seasons
 
-An Apple Tree is used as the season icon and will change based on the current season.  A notification will also appear on the screen, however on the notification it is always the summer tree.
+TimeControlPlus uses an Apple Tree to represent the current season. The displayed season follows the Sapiens seasonal cycle and also accounts for whether your tribe is in the northern or southern hemisphere.
 
-**Spring**, pink blooms on the apple tree<br>
+A notification is displayed when the season changes. These notifications use Sapiens' standard apple-tree notification image.
+
+**Spring:** pink blooms on the apple tree
+
 ![Spring](/assets/spring.png)
 
-**Summer**, green leaves<br>
+**Summer:** green leaves
+
 ![Summer](/assets/summer.png)
 
-**Autumn**, the leaves are beginning to yellow<br>
+**Autumn:** leaves beginning to yellow
+
 ![Autumn](/assets/autumn.png)
 
-**Winter**, no leaves<br>
+**Winter:** no leaves
+
 ![Winter](/assets/winter.png)
 
-The season indicated by the icon is based only on the day of the year it is, so it is a meteorological season determination.  The Sapiens game is built on a planet renderer and the climate model is quite sophisticated.  Much like real life the plant foliage and ground cover will change gradually as you approach seasonal boundaries - it is not a dramatic landscape change at the precise time the season changes.
-
-## Known Issues
-
-* None
-
-## Future Enhancements
-
-* Tooltips on the items with additional statistics
-* New year notification
+The season icon changes at the calendar boundary, but the Sapiens environment does not instantly change with it. The game's climate and vegetation systems transition gradually, much like seasons in the real world, so foliage and ground cover may begin changing before or after the calendar moves into the next season.
 
 ## Support
 
-Please [raise an issue](https://github.com/ChillGenXer/TimeControlPlus/issues) for any bug reports or enhancement suggestions.
+If you encounter a problem or have an enhancement suggestion, please [raise an issue on GitHub](https://github.com/ChillGenXer/TimeControlPlus/issues).
 
-## Interested in creating your own mod?
+## Interested in modding Sapiens?
 
-Sapiens was built from the ground up with modding in mind.  If you are interested in creating a mod for Sapiens check out the resources below.
+Sapiens was designed from the beginning with modding support built in. Installing a mod does not mean altering or hacking the game's original files. Mods are a normal part of the Sapiens ecosystem and can be added or removed without changing the base game.
 
-* [Official Sapiens Modding Site](https://github.com/Majic-Jungle/sapiens-mod-creation)
-* [Community Modding Site](https://wiki.sapiens.dev/)
+If you enjoy TimeControlPlus and want to explore what else the community has created, or perhaps try building a mod of your own, these resources are good places to start:
+
+- [Official Sapiens Modding Site](https://github.com/Majic-Jungle/sapiens-mod-creation)
+- [Community Modding Site](https://wiki.sapiens.dev/)
