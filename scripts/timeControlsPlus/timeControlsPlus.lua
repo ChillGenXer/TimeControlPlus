@@ -11,7 +11,6 @@ local model = mjrequire "common/model"
 local uiCommon = mjrequire "mainThread/ui/uiCommon/uiCommon"
 local uiToolTip = mjrequire "mainThread/ui/uiCommon/uiToolTip"
 local material = mjrequire "common/material"
-local localPlayer = mjrequire "mainThread/localPlayer"
 
 local vec2 = mjm.vec2
 local vec3 = mjm.vec3
@@ -43,7 +42,7 @@ local function getSeason()
     }
 
     --Get the players position to determine if they are in the southern hemisphere
-    local playerPosition = localPlayer:getPos()
+    local playerPosition = world:getRealPlayerHeadPos()
     local isSouthHemisphere = dot(playerPosition, vec3(0.0,1.0,0.0)) < 0.0
 
     --Calculate the seasonal fraction. 0.0 is spring, 0.25 summer, 0.5 is autumn, >0.75 winter.
@@ -94,19 +93,13 @@ end
 
 ---Send a UI notification when the seasons change.
 local function sendNotification(seasonNotifyInfo)
---[[
     notificationsUI:displayNotification({
-        typeIndex = seasonNotifyInfo.notificationType,
-		objectInfo = seasonNotifyInfo.notificationObject,
-        currentYear = seasonNotifyInfo.currentYear,
-	})
-]] 
-    notificationsUI:displayObjectNotification({
-        typeIndex = seasonNotifyInfo.notificationType,
-		objectInfo = seasonNotifyInfo.notificationObject,
-        currentYear = seasonNotifyInfo.currentYear,
-	})
-
+        notificationTypeIndex = seasonNotifyInfo.notificationType,
+        objectSaveData = seasonNotifyInfo.notificationObject,
+        userData = {
+            currentYear = seasonNotifyInfo.currentYear,
+        },
+    })
 end
 
 --Main function ran from the shadow file
@@ -114,6 +107,8 @@ function timeControlsPlus:init(gameUI_, world_)
     --Grab our game context objects and store them locally.
     gameUI = gameUI_
     world = world_
+    currentSeason = nil
+    currentYear = nil
 
     --mj:log(gameUI)
     --mj:log(world)
@@ -204,8 +199,8 @@ function timeControlsPlus:init(gameUI_, world_)
         local season = getSeason(world)
         if currentSeason ~= season.seasonText then
             if currentSeason ~= nil then
-                --The season is changing, play a sound
-                --sendNotification(season)
+                --The season is changing, display a notification and play its sound.
+                sendNotification(season)
             end
             currentSeason = season.seasonText
             seasonTreeImage:setModel(model:modelIndexForName(season.treeModel))
@@ -224,17 +219,21 @@ function timeControlsPlus:init(gameUI_, world_)
     end
 
     --The day of year text, and the update function to keep it refreshed with the correct value
-    dayTextView = TextView.new(myPanelView)
-    dayTextView.font = Font(uiCommon.fontName, 16)
-    dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
-    dayTextView.relativeView = myPanelView
-    dayTextView.baseOffset = dayBaseOffset
-    dayTextView.update = function(dt)
-        --Calculate the day of the year.
-        local elapsedDays = round(world:getWorldTime()/world:getDayLength())
-        local currentDay = elapsedDays % daysInYear + 1
-        dayTextView.text = "Day " .. tostring(currentDay)
-        --dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % daysInYear + 1)
+    -- Sapiens 0.7 provides its own tribe-age Day display. 0.6 does not expose
+    -- getTribeAge, so retain the Legacy day-of-year display there only.
+    if not world.getTribeAge then
+        dayTextView = TextView.new(myPanelView)
+        dayTextView.font = Font(uiCommon.fontName, 16)
+        dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
+        dayTextView.relativeView = myPanelView
+        dayTextView.baseOffset = dayBaseOffset
+        dayTextView.update = function(dt)
+            --Calculate the day of the year.
+            local elapsedDays = round(world:getWorldTime()/world:getDayLength())
+            local currentDay = elapsedDays % daysInYear + 1
+            dayTextView.text = "Day " .. tostring(currentDay)
+            --dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % daysInYear + 1)
+        end
     end
 
     --Digital Clock
