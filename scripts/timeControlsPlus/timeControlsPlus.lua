@@ -20,7 +20,6 @@ local mat3Identity = mjm.mat3Identity
 local gameUI = nil
 local world = nil
 local currentSeason = nil
-local currentYear = nil
 
 local notificationsUI = mjrequire "mainThread/ui/notificationsUI"
 local notification = mjrequire "common/notification"
@@ -86,7 +85,7 @@ local function getSeason()
     seasonObject.seasonText = seasonLookupTable[index].seasonText[hemisphereOffset]
     seasonObject.notificationType = seasonLookupTable[index].seasonNotificationType[hemisphereOffset]
     seasonObject.notificationObject = seasonLookupTable[index].seasonNotificationObject[hemisphereOffset]
-    seasonObject.currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/8) + 1)
+    seasonObject.currentYear = tostring(world:getYearIndex())
 
     return seasonObject
 end
@@ -108,7 +107,6 @@ function timeControlsPlus:init(gameUI_, world_)
     gameUI = gameUI_
     world = world_
     currentSeason = nil
-    currentYear = nil
 
     --mj:log(gameUI)
     --mj:log(world)
@@ -127,6 +125,7 @@ function timeControlsPlus:init(gameUI_, world_)
 
     --Time Variables
     local timeUnitLabel = "WT"                                              --The time units to display on the screen
+    local hasNativeDayAndPopulation = world.getTribeAge ~= nil               --Sapiens 0.7 provides the native Day/Population row
     local daysInYear = world:getYearLength() / world:getDayLength()         --Calculate the number of days in the year.
     local gameHourInSeconds = world:getDayLength()/24                       --Calculate this to future-proof for server owners changing it
     local gameMinuteInSeconds = world:getDayLength()/1440                   --Calculate how long a game minute is in real world seconds
@@ -140,6 +139,7 @@ function timeControlsPlus:init(gameUI_, world_)
     --TODO I should figure out how to offset from the timeControl itself.  Actually I should just shadow the whole thing, it's not big.
     local offsetFromGamePanel = 206.0                       --The offset from the vanilla timeControl panel 
     local myPanelBaseOffset = vec3(0, 0.0, -2)              --offset for the invisible anchor panel I will attach the rest of my objects to
+    local yearFontSize = 16
     local yearBaseOffset = vec3(12,58,0)                    --offset for the year text control.
     local dayBaseOffset = vec3(13,42,0)                     --offset for the day text control.
     local timeClockTextBaseOffset = vec3(13,20,0)
@@ -147,6 +147,12 @@ function timeControlsPlus:init(gameUI_, world_)
     local seasonCircleBaseOffset = vec3(75.0, 59.0, 0.1)    --offset for the circle panel bookend
     local seasonTreeBaseOffset = vec3(0.0, 0.0, 0.01)       --offset for the seasonal tree icon
     local toolTipOffset = vec3(0,-10,0)                     --offset for tooltips
+
+    if hasNativeDayAndPopulation then
+        yearFontSize = 18
+        yearBaseOffset = vec3(12,48,0)                      --Use the vacated Day row only in 0.7.
+        timeClockUnitLabelBaseOffset = vec3(47,21,0)         --Align WT with 0.7's native text row.
+    end
 
     --3D Scaling
     local panelScaleToUseX = panelSizeToUse.x * 0.5
@@ -209,19 +215,18 @@ function timeControlsPlus:init(gameUI_, world_)
 
     --The year text, and the update function to keep it refreshed with the correct value
     yearTextView = TextView.new(myPanelView)
-    yearTextView.font = Font(uiCommon.fontName, 16)
+    yearTextView.font = Font(uiCommon.fontName, yearFontSize)
     yearTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
     yearTextView.relativeView = myPanelView
     yearTextView.baseOffset = yearBaseOffset
     yearTextView.update = function(dt)
-        currentYear = tostring(math.floor(math.floor(world:getWorldTime()/world:getDayLength())/daysInYear) + 1)
-        yearTextView.text = "Year " .. currentYear
+        yearTextView.text = "Year " .. tostring(world:getYearIndex())
     end
 
     --The day of year text, and the update function to keep it refreshed with the correct value
     -- Sapiens 0.7 provides its own tribe-age Day display. 0.6 does not expose
     -- getTribeAge, so retain the Legacy day-of-year display there only.
-    if not world.getTribeAge then
+    if not hasNativeDayAndPopulation then
         dayTextView = TextView.new(myPanelView)
         dayTextView.font = Font(uiCommon.fontName, 16)
         dayTextView.relativePosition = ViewPosition(MJPositionInnerLeft, MJPositionBelow)
