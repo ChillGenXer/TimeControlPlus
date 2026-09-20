@@ -25,11 +25,6 @@ local notificationsUI = mjrequire "mainThread/ui/notificationsUI"
 local notification = mjrequire "common/notification"
 local gameObject = mjrequire "common/gameObject"
 
----Rounds the given number
-local function round(n)
-    return n >= 0 and math.floor(n + 0.5) or math.ceil(n - 0.5)
-end
-
 ---Returns a season object with the appropriate tree model and season name.
 local function getSeason()
     
@@ -126,7 +121,6 @@ function timeControlsPlus:init(gameUI_, world_)
     --Time Variables
     local timeUnitLabel = "WT"                                              --The time units to display on the screen
     local hasNativeDayAndPopulation = world.getTribeAge ~= nil               --Sapiens 0.7 provides the native Day/Population row
-    local daysInYear = world:getYearLength() / world:getDayLength()         --Calculate the number of days in the year.
     local gameHourInSeconds = world:getDayLength()/24                       --Calculate this to future-proof for server owners changing it
     local gameMinuteInSeconds = world:getDayLength()/1440                   --Calculate how long a game minute is in real world seconds
 
@@ -223,9 +217,9 @@ function timeControlsPlus:init(gameUI_, world_)
         yearTextView.text = "Year " .. tostring(world:getYearIndex())
     end
 
-    --The day of year text, and the update function to keep it refreshed with the correct value
-    -- Sapiens 0.7 provides its own tribe-age Day display. 0.6 does not expose
-    -- getTribeAge, so retain the Legacy day-of-year display there only.
+    --The tribe-age day text, and the update function to keep it refreshed with the correct value
+    -- Sapiens 0.7 provides its own tribe-age Day display. Mirror those semantics
+    -- in the 0.6 Legacy display using its server-provided creation world time.
     if not hasNativeDayAndPopulation then
         dayTextView = TextView.new(myPanelView)
         dayTextView.font = Font(uiCommon.fontName, 16)
@@ -233,11 +227,11 @@ function timeControlsPlus:init(gameUI_, world_)
         dayTextView.relativeView = myPanelView
         dayTextView.baseOffset = dayBaseOffset
         dayTextView.update = function(dt)
-            --Calculate the day of the year.
-            local elapsedDays = round(world:getWorldTime()/world:getDayLength())
-            local currentDay = elapsedDays % daysInYear + 1
-            dayTextView.text = "Day " .. tostring(currentDay)
-            --dayTextView.text = "Day  " .. tostring((math.floor(world:getWorldTime()/world:getDayLength())) % daysInYear + 1)
+            local timeOfDayFraction = world:getTimeOfDayFraction()
+            local tribeAge = world:getWorldTime() - (world.creationWorldTime or 0)
+            local dayLength = world:getDayLength()
+            local tribeAgeDays = math.floor((tribeAge - timeOfDayFraction * dayLength) / dayLength) + 2
+            dayTextView.text = string.format("Day %d", tribeAgeDays)
         end
     end
 
